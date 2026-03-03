@@ -27,7 +27,10 @@ model User {
   role          String    @default("CITIZEN")
   isActive      Boolean   @default(true)
   emailVerified Boolean   @default(false)
-  
+
+  // Phiz platform user ID - for QR code login and mini-program sync
+  phizUserId    String?   @unique
+
   address       Address?  @relation("UserAddress")
   
   requests         ServiceRequest[] @relation("RequestAuthor")
@@ -45,6 +48,7 @@ model User {
 
   @@index([email])
   @@index([cpf])
+  @@index([phizUserId])
   @@index([role])
   @@index([createdAt])
   @@map("users")
@@ -65,6 +69,21 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
   @@map("sessions")
+}
+
+// Tracks Phiz QR code login sessions - links scanToken to phizUserId
+model PhizLoginSession {
+  id          String    @id @default(cuid())
+  scanToken   String    @unique
+  phizUserId  String?
+  status      String    @default("PENDING") // PENDING, COMPLETED, EXPIRED
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  @@index([scanToken])
+  @@index([expiresAt])
+  @@index([status])
+  @@map("phiz_login_sessions")
 }
 
 model Address {

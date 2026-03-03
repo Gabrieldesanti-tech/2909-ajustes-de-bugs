@@ -5,12 +5,15 @@ import Link from "next/link";
 import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowRight } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import PhizLogin from "@/components/auth/PhizLogin";
 import { formatCPF, formatPhone, validateCPF, validateEmail } from "@/lib/utils";
 
 type AuthMode = "login" | "register";
+type LoginMethod = "cpf" | "phiz";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>("login");
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>("cpf");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -169,6 +172,7 @@ export default function AuthPage() {
             <button
               onClick={() => {
                 setMode("login");
+                setLoginMethod("cpf");
                 setErrors({});
               }}
               className={`flex-1 py-4 text-center font-medium transition-colors ${
@@ -209,62 +213,96 @@ export default function AuthPage() {
             )}
 
             {mode === "login" ? (
-              /* Formulário de Login */
-              <form onSubmit={handleLogin} className="space-y-4">
-                <Input
-                  label="CPF"
-                  name="cpf"
-                  type="text"
-                  placeholder="000.000.000-00"
-                  value={loginData.cpf}
-                  onChange={(e) => handleCPFChange(e.target.value, true)}
-                  error={errors.cpf}
-                  leftIcon={<User size={18} />}
-                  required
-                />
+              /* Login: CPF ou Phiz */
+              <div className="space-y-4">
+                {loginMethod === "cpf" ? (
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <Input
+                      label="CPF"
+                      name="cpf"
+                      type="text"
+                      placeholder="000.000.000-00"
+                      value={loginData.cpf}
+                      onChange={(e) => handleCPFChange(e.target.value, true)}
+                      error={errors.cpf}
+                      leftIcon={<User size={18} />}
+                      required
+                    />
 
-                <div className="relative">
-                  <Input
-                    label="Senha"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Digite sua senha"
-                    value={loginData.password}
-                    onChange={(e) =>
-                      setLoginData({ ...loginData, password: e.target.value })
-                    }
-                    error={errors.password}
-                    leftIcon={<Lock size={18} />}
-                    required
-                  />
+                    <div className="relative">
+                      <Input
+                        label="Senha"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Digite sua senha"
+                        value={loginData.password}
+                        onChange={(e) =>
+                          setLoginData({ ...loginData, password: e.target.value })
+                        }
+                        error={errors.password}
+                        leftIcon={<Lock size={18} />}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-9 text-neutral-400 hover:text-neutral-600"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+
+                    <div className="text-right">
+                      <Link
+                        href="/auth/recuperar-senha"
+                        className="text-sm text-primary hover:underline"
+                      >
+                        Esqueci minha senha
+                      </Link>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      size="lg"
+                      isLoading={isLoading}
+                      rightIcon={<ArrowRight size={18} />}
+                    >
+                      Entrar
+                    </Button>
+                  </form>
+                ) : (
+                  <PhizLogin />
+                )}
+
+                {loginMethod === "cpf" ? (
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-neutral-200" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-2 text-neutral-500">ou</span>
+                    </div>
+                  </div>
+                ) : null}
+                {loginMethod === "cpf" ? (
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-9 text-neutral-400 hover:text-neutral-600"
+                    onClick={() => setLoginMethod("phiz")}
+                    className="w-full text-sm text-neutral-600 hover:text-primary"
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    Entrar com Phiz (QR Code)
                   </button>
-                </div>
-
-                <div className="text-right">
-                  <Link
-                    href="/auth/recuperar-senha"
-                    className="text-sm text-primary hover:underline"
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setLoginMethod("cpf")}
+                    className="w-full text-sm text-neutral-600 hover:text-primary"
                   >
-                    Esqueci minha senha
-                  </Link>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full"
-                  size="lg"
-                  isLoading={isLoading}
-                  rightIcon={<ArrowRight size={18} />}
-                >
-                  Entrar
-                </Button>
-              </form>
+                    Voltar para login com CPF
+                  </button>
+                )}
+              </div>
             ) : (
               /* Formulário de Cadastro */
               <form onSubmit={handleRegister} className="space-y-4">
