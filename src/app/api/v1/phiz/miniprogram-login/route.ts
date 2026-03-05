@@ -5,6 +5,7 @@
 // =============================================================================
 
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { generateToken } from "@/lib/auth";
 import type { AuthUser } from "@/lib/auth";
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
                 phizUserId,
                 isActive: true,
                 deletedAt: null,
-            },
+            } as Prisma.UserWhereInput,
         });
 
         if (!user) {
