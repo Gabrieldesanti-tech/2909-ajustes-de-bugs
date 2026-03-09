@@ -1,0 +1,182 @@
+import Link from "next/link";
+import { ArrowRight, Download, ExternalLink, Smartphone, CheckCircle, Apple } from "lucide-react";
+
+const PHIZ_WEB_URL = "https://phiz.app";
+
+export default function PhizPage() {
+  return (
+    <div className="container-main py-8 md:py-10 bg-gradient-to-b from-emerald-50/60 via-white to-white">
+      <div className="space-y-8">
+        <header className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-emerald-100 p-2">
+              <img
+                src="phiz-logo.svg"
+                alt="Logo do Phiz"
+                className="h-10 w-10 object-contain"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                App oficial do PhizChat
+              </div>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-neutral-900 tracking-tight">
+                Baixe o app PhizChat para continuar seu atendimento
+              </h1>
+            </div>
+          </div>
+
+          <p className="max-w-2xl text-sm md:text-base text-neutral-600">
+            Acompanhe solicitações em tempo real, receba notificações importantes e resolva tudo em um só lugar.
+          </p>
+        </header>
+
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <article className="rounded-xl border border-emerald-100 bg-white shadow-card overflow-hidden">
+            <div className="p-5 md:p-6 space-y-3">
+              <div className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-900 bg-emerald-100 rounded-full px-3 py-1">
+                <Smartphone size={16} aria-hidden="true" />
+                Já possui o PhizChat?
+              </div>
+              <h2 className="text-lg md:text-xl font-bold text-neutral-900">
+                Abrir PhizChat
+              </h2>
+              <p className="text-sm text-neutral-600">
+                Se você já tem o app instalado, clique para acessar.
+              </p>
+              <a
+                href={PHIZ_WEB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-colors w-full sm:w-auto"
+              >
+                Entrar no PhizChat
+                <ArrowRight size={18} aria-hidden="true" />
+              </a>
+            </div>
+          </article>
+
+          <article className="rounded-xl border border-neutral-200 bg-white shadow-card overflow-hidden">
+            <div className="p-5 md:p-6 space-y-3">
+              <div className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-900 bg-emerald-50 rounded-full px-3 py-1">
+                <Download size={16} aria-hidden="true" />
+                Não possui o PhizChat?
+              </div>
+              <h2 className="text-lg md:text-xl font-bold text-neutral-900">
+                Instalar Agora!
+              </h2>
+              <p className="text-sm text-neutral-600">
+                Baixe o app para instalar e começar a usar.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  href={PHIZ_WEB_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-colors w-full sm:w-auto"
+                >
+                  <Smartphone size={18} aria-hidden="true" />
+                  Android
+                  <ExternalLink size={18} aria-hidden="true" />
+                </a>
+                <a
+                  href={PHIZ_WEB_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white font-semibold transition-colors w-full sm:w-auto"
+                >
+                  <Apple size={18} aria-hidden="true" />
+                  IOS
+                  <ExternalLink size={18} aria-hidden="true" />
+                </a>
+              </div>
+          
+            </div>
+          </article>
+        </section>
+
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div className="space-y-5">
+            <h3 className="text-xl md:text-2xl font-extrabold text-neutral-900">
+              Tudo o que você faz com o PhizChat
+            </h3>
+            <ul className="space-y-3 text-neutral-700">
+              <li className="flex items-start gap-3">
+                <CheckCircle size={18} className="mt-0.5 text-[#1748ae]" aria-hidden="true" />
+                <div>
+                  <p className="font-medium text-neutral-900">Atendimento simples e rápido</p>
+                  <p className="text-sm text-neutral-600">
+                    Abra solicitações em poucos toques e acompanhe cada etapa sem sair do app.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <CheckCircle size={18} className="mt-0.5 text-[#1748ae]" aria-hidden="true" />
+                <div>
+                  <p className="font-medium text-neutral-900">Tudo organizado em um só lugar</p>
+                  <p className="text-sm text-neutral-600">
+                    Histórico completo de atendimentos, protocolos e mensagens sempre à mão.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <CheckCircle size={18} className="mt-0.5 text-[#1748ae]" aria-hidden="true" />
+                <div>
+                  <p className="font-medium text-neutral-900">Notificações em tempo real</p>
+                  <p className="text-sm text-neutral-600">
+                    Seja avisado quando algo mudar no seu atendimento, sem precisar ficar consultando o portal.
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div className="relative mx-auto max-w-xs">
+            <div className="pointer-events-none absolute -left-6 -top-4 -z-10 h-40 w-40 rounded-full bg-[#1748ae]/30 blur-3xl" />
+            <div className="pointer-events-none absolute -right-4 bottom-0 -z-10 h-32 w-32 rounded-full bg-sky-400/25 blur-3xl" />
+
+            <div className="relative rounded-[32px] border border-neutral-200/80 bg-linear-to-b from-white to-neutral-50 shadow-[0_24px_80px_rgba(15,23,42,0.22)] p-4">
+              <div className="mx-auto h-1 w-16 rounded-full bg-neutral-200" />
+              <div className="mt-4 rounded-2xl border border-neutral-200 bg-white/90 p-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold text-neutral-500">Sua solicitação</p>
+                    <p className="text-sm font-bold text-neutral-900">Protocolo #1234</p>
+                  </div>
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">
+                    Em andamento
+                  </span>
+                </div>
+
+                <div className="space-y-2 rounded-xl bg-neutral-50 p-3">
+                  <div className="flex items-center justify-between text-xs text-neutral-600">
+                    <span>Abertura</span>
+                    <span>Hoje, 14:32</span>
+                  </div>
+                  <div className="h-1 w-full rounded-full bg-neutral-200">
+                    <div className="h-1 w-2/3 rounded-full bg-[#1748ae]" />
+                  </div>
+                  <p className="text-xs text-neutral-600">
+                    Você receberá uma notificação assim que houver atualização.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-neutral-500">Próximo passo</span>
+                    <span className="font-semibold text-neutral-900">Análise da equipe</span>
+                  </div>
+                  <button className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-[11px] font-semibold text-[#1748ae]">
+                    Ver detalhes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
