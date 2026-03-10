@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { NextRequest, NextResponse } from "next/server";
-import { getPublicRequestByProtocol } from "@/lib/requests";
+import { getPublicByProtocol } from "@/lib/requests";
 
 export async function GET(
   _request: NextRequest,
@@ -19,7 +19,7 @@ export async function GET(
       );
     }
 
-    const data = await getPublicRequestByProtocol(protocol);
+    const data = await getPublicByProtocol(protocol);
     if (!data) {
       return NextResponse.json(
         { success: false, error: "Protocolo não encontrado" },

@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Bell } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
-import { getCategoryBySlug, serviceCategories } from "@/data/services";
-import { getCategoryIcon } from "@/lib/icons";
+import { getCategoryBySlug } from "@/data/services";
+import { Menu } from "lucide-react";
 import { getCategoryBySlugFromDb } from "@/lib/services-db";
 import type { Metadata } from "next";
 
@@ -70,10 +70,7 @@ export default async function CategoryPage({ params }: PageProps) {
           <div className="bg-white rounded-lg shadow-card border border-neutral-100 overflow-hidden">
             <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                {(() => {
-                  const Icon = getCategoryIcon(categoryData.icon);
-                  return <Icon size={28} className="text-[#1748ae] shrink-0" aria-hidden />;
-                })()}
+                <Menu size={28} className="text-[#1748ae] shrink-0" aria-hidden />
                 <h1 className="text-2xl font-bold text-neutral-800">
                   {categoryData.name}
                 </h1>

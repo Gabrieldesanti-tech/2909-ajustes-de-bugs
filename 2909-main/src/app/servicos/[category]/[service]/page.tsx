@@ -189,25 +189,22 @@ export default async function ServicePage({ params }: PageProps) {
                   </h2>
                   <div className="prose prose-sm max-w-none text-neutral-600">
                     <p>{serviceData.description}</p>
-                    <p>
-                      Utilize este formulário para registrar sua solicitação relacionada a{" "}
-                      <strong>{serviceData.name.toLowerCase()}</strong> na cidade de Belford Roxo.
-                    </p>
-                    <p>
-                      Após o envio, você receberá um número de protocolo para acompanhamento.
-                      O prazo de resposta varia de acordo com a complexidade da demanda.
-                    </p>
                   </div>
                 </div>
               )}
 
-              {/* Botão de ação */}
-              <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t border-neutral-100">
+              {/* Slogan antes dos botões */}
+              <p className="mt-6 mb-2 text-base font-semibold text-primary bg-primary/5 border border-primary/10 rounded-md px-4 py-3">
+                Para mais informações e atendimento digital, utilize nossos canais oficiais abaixo.
+              </p>
+
+              {/* Botões de ação */}
+              <div className="flex flex-col sm:flex-row gap-4 mt-4 pt-6 border-t border-neutral-100">
                 <Link
                   href="/phiz"
                   className="inline-flex items-center justify-center px-8 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-[#0d3380] transition-colors shadow-md"
                 >
-                  Baixar App PHIZ
+                  Baixe o app PhizChat
                 </Link>
                 <Link
                   href={`/servicos/${category}`}

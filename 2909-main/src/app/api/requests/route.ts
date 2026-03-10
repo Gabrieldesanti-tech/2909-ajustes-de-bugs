@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { createRequest } from "@/lib/requests";
+import { create } from "@/lib/requests";
 import { sanitizeHTML } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const user = await getCurrentUser();
 
-    const result = await createRequest({
+    const result = await create({
       userId: user?.id,
       serviceId,
       description: sanitizeHTML(description.trim()),

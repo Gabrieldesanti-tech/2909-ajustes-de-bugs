@@ -29,6 +29,46 @@ import Link from "next/link";
 export default function Home() {
   return (
     <div className="container-main py-6 md:py-8">
+      {/* CTAs Principais - Visíveis imediatamente (above the fold) */}
+      <section aria-label="Ações rápidas" className="mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link
+            href="/solicitacao"
+            className="group flex items-center gap-4 p-5 md:p-6 bg-[#1748ae] hover:bg-[#0d3380] text-white rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
+          >
+            <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
+              <FileText size={28} aria-hidden="true" />
+            </div>
+            <div className="flex-1">
+              <span className="text-lg md:text-xl font-bold block">
+                Fazer Solicitação
+              </span>
+              <span className="text-sm text-white/80 block mt-0.5">
+                Registre sua demanda em poucos passos
+              </span>
+            </div>
+            <ArrowRight size={22} className="opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" aria-hidden="true" />
+          </Link>
+
+          <Link
+            href="/consulta"
+            className="group flex items-center gap-4 p-5 md:p-6 bg-[#0094de] hover:bg-[#0077b3] text-white rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
+          >
+            <div className="p-3 bg-white/20 rounded-xl group-hover:bg-white/30 transition-colors">
+              <Search size={28} aria-hidden="true" />
+            </div>
+            <div className="flex-1">
+              <span className="text-lg md:text-xl font-bold block">
+                Consultar Protocolo
+              </span>
+              <span className="text-sm text-white/80 block mt-0.5">
+                Acompanhe o andamento da sua solicitação
+              </span>
+            </div>
+            <ArrowRight size={22} className="opacity-60 group-hover:opacity-100 group-hover:translate-x-1 transition-all" aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar com categorias */}
         <Sidebar />
