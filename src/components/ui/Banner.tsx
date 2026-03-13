@@ -14,14 +14,16 @@ interface BannerSlide {
 }
 
 const slides: BannerSlide[] = [
+
   {
     id: "1",
-    title: "Portal de Atendimento 2909",
-    subtitle: "Central de Serviços ao Cidadão",
-    description: "Solicite serviços, faça denúncias e acompanhe suas solicitações de forma rápida e fácil.",
-    ctaText: "Fazer uma solicitação",
-    ctaLink: "/solicitacao",
+    title: "Baixe o App PhizChat",
+    subtitle: "Navegue no universo PhizChat e resolva suas demandas de forma rápida e fácil.",
+    description: "Agora você pode resolver diversas demandas sem sair de casa, pelo computador ou celular.",
+    ctaText: "Baixar App",
+    ctaLink: "/phiz",
   },
+
   {
     id: "2",
     title: "Prefeitura na Sua Casa",

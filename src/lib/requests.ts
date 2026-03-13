@@ -4,7 +4,7 @@
 
 import prisma from "./db";
 import { generateProtocol } from "./utils";
-import type { Filters, DashboardStats, PaginatedResponse } from "@/types";
+import type { RequestFilters, DashboardStats, PaginatedResponse } from "@/types";
 
 const SLA_HOURS_BY_PRIORITY: Record<string, number> = {
   LOW: 240,
@@ -165,7 +165,7 @@ export async function getPublicByProtocol(protocol: string) {
 // LISTAR SOLICITAÇÕES COM FILTROS (ADMIN)
 // =============================================================================
 
-export async function lists(filters: Filters): Promise<PaginatedResponse<unknown>> {
+export async function lists(filters: RequestFilters): Promise<PaginatedResponse<unknown>> {
   const page = filters.page || 1;
   const limit = filters.limit || 20;
   const skip = (page - 1) * limit;
@@ -319,9 +319,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [
-    totals, pendings, inProgresss, resolveds,
-    closeds, cancelleds, slaBreached,
-    todays, weeks, months, resolvedWithTime,
+    totalRequests, pendingRequests, inProgressRequests, resolvedRequests,
+    closedRequests, cancelledRequests, slaBreached,
+    todayRequests, weekRequests, monthRequests, resolvedWithTime,
   ] = await Promise.all([
     prisma.serviceRequest.count(),
     prisma.serviceRequest.count({ where: { status: "PENDING" } }),
@@ -353,9 +353,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   }
 
   return {
-    totals, pendings, inProgresss, resolveds,
-    closeds, cancelleds, slaBreached, avgResolutionHours,
-    todays, weeks, months,
+    totalRequests, pendingRequests, inProgressRequests, resolvedRequests,
+    closedRequests, cancelledRequests, slaBreached, avgResolutionHours,
+    todayRequests, weekRequests, monthRequests,
   };
 }
 

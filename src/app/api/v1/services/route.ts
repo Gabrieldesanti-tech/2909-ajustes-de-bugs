@@ -53,7 +53,7 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Erro interno do servidor",
+        error: "Erro interno do servidor",
       },
       { status: 500 }
     );

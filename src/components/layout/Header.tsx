@@ -16,8 +16,6 @@ const navItems = [
   { name: "Serviços", href: "/", highlight: true },
   { name: "Lei de Acesso à Informação", href: "/lai" },
   { name: "Ouvidoria", href: "/ouvidoria" },
-
-  { name: "Consulta Protocolo", href: "/consulta" },
   { name: "Notícias", href: "/noticias" },
   { name: "Relatórios", href: "/relatorios" },
   { name: "Perguntas Frequentes", href: "/faq" },
@@ -140,12 +138,12 @@ export default function Header() {
                 </div>
               </form>
 
-              {/* Login/Cadastro */}
+              {/* Área do Admin */}
               <Link
-                href="/auth"
+                href="/admin"
                 className="hidden md:flex items-center gap-2 text-white/90 hover:text-white transition-colors text-sm"
               >
-                Acessar | Cadastrar
+                Área do Admin
               </Link>
 
               {/* Busca mobile */}
@@ -225,12 +223,12 @@ export default function Header() {
               ))}
               <div className="pt-4 border-t border-white/20 mt-4">
                 <Link
-                  href="/auth"
+                  href="/admin"
                   className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-white hover:bg-white/10 rounded"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <User size={18} />
-                  Acessar | Cadastrar
+                  Área do Admin
                 </Link>
               </div>
             </nav>

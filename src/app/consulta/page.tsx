@@ -265,7 +265,7 @@ function ConsultaContent() {
         <div className="mt-8 text-center">
           <p className="text-neutral-600 mb-4">Precisa abrir uma nova solicitação?</p>
           <Link
-            href="/solicitacao"
+            href="/phiz"
             className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
           >
             Clique aqui para abrir uma solicitação

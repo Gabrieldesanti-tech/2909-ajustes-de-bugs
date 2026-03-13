@@ -1,13 +1,15 @@
 import {
   FileText, Scale, Clock, Users, Shield, BookOpen, ExternalLink,
-  Download, Phone, Mail, MapPin, Building2,
+  Download, Phone, Mail, MapPin, Building2, Smartphone, Apple,
 } from "lucide-react";
-import Link from "next/link";
 
 export const metadata = {
   title: "Lei de Acesso à Informação - Portal 2909 Belford Roxo",
   description: "Acesse informações públicas da Prefeitura de Belford Roxo conforme a Lei Federal nº 12.527/2011.",
 };
+
+const PHIZ_ANDROID_URL = "https://play.google.com/store/apps/details?id=live.phiz.app2";
+const PHIZ_IOS_URL = "https://apps.apple.com/br/app/phiz-chat/id6447375837";
 
 export default function LAIPage() {
   return (
@@ -17,7 +19,9 @@ export default function LAIPage() {
         <div className="container-main">
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-white/10 rounded-xl"><Scale size={32} /></div>
+              <div className="p-3 bg-white/10 rounded-xl">
+                <Scale size={32} />
+              </div>
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold">Lei de Acesso à Informação</h1>
                 <p className="text-blue-200 text-sm mt-1">Lei Federal nº 12.527/2011</p>
@@ -35,7 +39,8 @@ export default function LAIPage() {
         {/* O que é a LAI */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <BookOpen size={22} className="text-blue-600" />O que é a LAI?
+            <BookOpen size={22} className="text-blue-600" />
+            O que é a LAI?
           </h2>
           <div className="prose max-w-none text-gray-600 leading-relaxed space-y-4">
             <p>
@@ -74,18 +79,43 @@ export default function LAIPage() {
         {/* Como solicitar */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <FileText size={22} className="text-blue-600" />Como Solicitar Informações
+            <FileText size={22} className="text-blue-600" />
+            Como Solicitar Informações
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <StepItem number={1} title="Identifique a informação" description="Descreva claramente qual informação você deseja obter. Quanto mais detalhada a solicitação, mais rápida será a resposta." />
-              <StepItem number={2} title="Escolha o canal" description="Você pode solicitar presencialmente, por telefone, e-mail ou pelo Portal 2909 de Atendimento ao Cidadão." />
-              <StepItem number={3} title="Acompanhe sua solicitação" description="Após o envio, você receberá um número de protocolo para acompanhar o andamento do seu pedido." />
+              <StepItem
+                number={1}
+                title="Identifique a informação"
+                description="Descreva claramente qual informação você deseja obter. Quanto mais detalhada a solicitação, mais rápida será a resposta."
+              />
+              <StepItem
+                number={2}
+                title="Escolha o canal"
+                description="Você pode solicitar presencialmente, por telefone, e-mail ou pelo aplicativo oficial do PhizChat."
+              />
+              <StepItem
+                number={3}
+                title="Acompanhe sua solicitação"
+                description="Após o envio, você receberá um número de protocolo para acompanhar o andamento do seu pedido."
+              />
             </div>
             <div className="space-y-4">
-              <StepItem number={4} title="Receba a resposta" description="A resposta será enviada no prazo de até 20 dias, podendo ser prorrogado por mais 10 dias." />
-              <StepItem number={5} title="Caso não esteja satisfeito" description="Você pode apresentar recurso à autoridade hierarquicamente superior se a resposta não for satisfatória." />
-              <StepItem number={6} title="Recurso à CGU" description="Em última instância, o cidadão pode recorrer à Controladoria-Geral da União (CGU)." />
+              <StepItem
+                number={4}
+                title="Receba a resposta"
+                description="A resposta será enviada no prazo de até 20 dias, podendo ser prorrogado por mais 10 dias."
+              />
+              <StepItem
+                number={5}
+                title="Caso não esteja satisfeito"
+                description="Você pode apresentar recurso à autoridade hierarquicamente superior se a resposta não for satisfatória."
+              />
+              <StepItem
+                number={6}
+                title="Recurso à CGU"
+                description="Em última instância, o cidadão pode recorrer à Controladoria-Geral da União (CGU)."
+              />
             </div>
           </div>
         </div>
@@ -93,7 +123,8 @@ export default function LAIPage() {
         {/* Transparência Ativa */}
         <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 p-8">
           <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Shield size={22} className="text-blue-600" />Transparência Ativa
+            <Shield size={22} className="text-blue-600" />
+            Transparência Ativa
           </h2>
           <p className="text-gray-600 mb-6">
             A Prefeitura de Belford Roxo disponibiliza as seguintes informações de forma proativa:
@@ -109,8 +140,11 @@ export default function LAIPage() {
               "Diárias e passagens",
               "Servidores públicos",
               "Convênios e parcerias",
-            ].map(item => (
-              <div key={item} className="flex items-center gap-2 p-3 bg-white rounded-lg text-sm text-gray-700">
+            ].map((item) => (
+              <div
+                key={item}
+                className="flex items-center gap-2 p-3 bg-white rounded-lg text-sm text-gray-700"
+              >
                 <FileText size={16} className="text-blue-500 shrink-0" />
                 {item}
               </div>
@@ -122,19 +156,25 @@ export default function LAIPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <ExternalLink size={22} className="text-blue-600" />Links Úteis
+              <ExternalLink size={22} className="text-blue-600" />
+              Links Úteis
             </h2>
             <div className="space-y-3">
               {[
                 { label: "Portal da Transparência - Belford Roxo", url: "https://prefeituradebelfordroxo.rj.gov.br" },
                 { label: "Lei 12.527/2011 - Texto Integral", url: "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2011/lei/l12527.htm" },
                 { label: "Controladoria-Geral da União (CGU)", url: "https://www.gov.br/cgu" },
-                { label: "Portal 2909 - Fazer Solicitação", url: "/solicitacao" },
-              ].map(link => (
-                <a key={link.label} href={link.url} target={link.url.startsWith("http") ? "_blank" : undefined}
+                { label: "Baixar o app PhizChat", url: PHIZ_ANDROID_URL },
+              ].map((link) => (
+                <a
+                  key={link.label}
+                  href={link.url}
+                  target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-3 rounded-lg text-sm text-blue-700 hover:bg-blue-50 transition-colors border border-gray-100">
-                  <ExternalLink size={16} className="shrink-0" />{link.label}
+                  className="flex items-center gap-2 p-3 rounded-lg text-sm text-blue-700 hover:bg-blue-50 transition-colors border border-gray-100"
+                >
+                  <ExternalLink size={16} className="shrink-0" />
+                  {link.label}
                 </a>
               ))}
             </div>
@@ -142,7 +182,8 @@ export default function LAIPage() {
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Building2 size={22} className="text-blue-600" />Contato do SIC
+              <Building2 size={22} className="text-blue-600" />
+              Contato do SIC
             </h2>
             <p className="text-sm text-gray-500 mb-4">Serviço de Informação ao Cidadão (SIC)</p>
             <div className="space-y-4 text-sm">
@@ -150,7 +191,9 @@ export default function LAIPage() {
                 <MapPin size={18} className="text-gray-400 mt-0.5 shrink-0" />
                 <div>
                   <p className="font-medium text-gray-800">Endereço</p>
-                  <p className="text-gray-600">Rua São Bernardo, s/nº - Centro, Belford Roxo/RJ - CEP: 26130-010</p>
+                  <p className="text-gray-600">
+                    Rua São Bernardo, s/nº - Centro, Belford Roxo/RJ - CEP: 26130-010
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -180,31 +223,75 @@ export default function LAIPage() {
 
         {/* CTA */}
         <div className="bg-blue-600 rounded-2xl p-8 text-center text-white">
-          <h2 className="text-2xl font-bold mb-2">Precisa de uma informação pública?</h2>
-          <p className="text-blue-100 mb-6">Registre sua solicitação pelo Portal 2909 e acompanhe pelo número do protocolo.</p>
-          <Link href="/solicitacao" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-700 font-semibold rounded-lg hover:bg-blue-50 transition-colors">
-            <FileText size={18} />Fazer Solicitação
-          </Link>
+          <h2 className="text-2xl font-bold mb-2">Faça sua solicitação pelo PhizChat</h2>
+          <p className="text-blue-100 mb-6 max-w-xl mx-auto">
+            Para registrar solicitações, acompanhar protocolos e receber atualizações em tempo real,
+            utilize o aplicativo oficial do PhizChat.
+          </p>
+
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <a
+              href={PHIZ_ANDROID_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-colors"
+            >
+              <Smartphone size={18} />
+              Baixar para Android
+              <ExternalLink size={16} />
+            </a>
+
+            <a
+              href={PHIZ_IOS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-blue-700 hover:bg-blue-50 font-semibold rounded-lg transition-colors"
+            >
+              <Apple size={18} />
+              Baixar para iPhone
+              <ExternalLink size={16} />
+            </a>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function InfoCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function InfoCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-      <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-4">{icon}</div>
+      <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-4">
+        {icon}
+      </div>
       <h3 className="font-bold text-gray-800 mb-2">{title}</h3>
       <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
     </div>
   );
 }
 
-function StepItem({ number, title, description }: { number: number; title: string; description: string }) {
+function StepItem({
+  number,
+  title,
+  description,
+}: {
+  number: number;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="flex gap-4">
-      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0">{number}</div>
+      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0">
+        {number}
+      </div>
       <div>
         <h4 className="font-semibold text-gray-800 text-sm">{title}</h4>
         <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{description}</p>

@@ -2675,14 +2675,14 @@ export const faqData: FAQ[] = [
   {
     id: "1",
     question: "Como faço para abrir uma solicitação?",
-    answer: "Para abrir uma solicitação, navegue até a categoria desejada, selecione o serviço e preencha o formulário. Você receberá um número de protocolo para acompanhamento.",
+    answer: "Baixe o app PhizChat e abra o chat com o bot 2909.",
     categoryId: "geral",
     order: 1
   },
   {
     id: "2",
     question: "Preciso me cadastrar para usar o portal?",
-    answer: "Não é necessário cadastro para a maioria das solicitações. Porém, algumas funcionalidades como acompanhamento de solicitações e histórico requerem login.",
+    answer: "voce apenas precisa baixar o app Phizchat e fazer login ou criar uma conta nele",
     categoryId: "geral",
     order: 2
   },

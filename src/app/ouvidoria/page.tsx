@@ -8,7 +8,7 @@ const ouvidoriaTypes = [
     description: "Relatar irregularidades, abusos ou condutas ilegais",
     icon: AlertTriangle,
     color: "text-red-600 bg-red-100",
-    href: "/solicitacao?category=ouvidoria&service=denuncia",
+    href: "/phiz",
   },
   {
     id: "reclamacao",
@@ -16,7 +16,7 @@ const ouvidoriaTypes = [
     description: "Expressar insatisfação com serviços ou atendimentos",
     icon: MessageSquare,
     color: "text-orange-600 bg-orange-100",
-    href: "/solicitacao?category=ouvidoria&service=reclamacao",
+    href: "/phiz",
   },
   {
     id: "sugestao",
@@ -24,7 +24,7 @@ const ouvidoriaTypes = [
     description: "Propor melhorias para os serviços públicos",
     icon: Lightbulb,
     color: "text-blue-600 bg-blue-100",
-    href: "/solicitacao?category=ouvidoria&service=sugestao",
+    href: "/phiz",
   },
   {
     id: "elogio",
@@ -32,7 +32,7 @@ const ouvidoriaTypes = [
     description: "Reconhecer um bom atendimento ou serviço",
     icon: ThumbsUp,
     color: "text-green-600 bg-green-100",
-    href: "/solicitacao?category=ouvidoria&service=elogio",
+    href: "/phiz",
   },
   {
     id: "solicitacao",
@@ -40,7 +40,7 @@ const ouvidoriaTypes = [
     description: "Requisitar informações sobre serviços ou procedimentos",
     icon: FileText,
     color: "text-purple-600 bg-purple-100",
-    href: "/lai",
+    href: "/phiz",
   },
 ];
 
