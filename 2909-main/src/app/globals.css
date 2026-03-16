@@ -1,0 +1,267 @@
+@import "tailwindcss";
+
+@theme {
+  /* Cores da Prefeitura de Belford Roxo - extraídas do site oficial */
+  --color-primary: #1748ae;
+  --color-primary-dark: #0d3380;
+  --color-primary-light: #2a5dc7;
+  
+  --color-secondary: #0094de;
+  --color-secondary-dark: #0077b3;
+  --color-secondary-light: #33a9e5;
+  
+  --color-accent-yellow: #eab308;
+  --color-accent-green: #1abc9c;
+  
+  /* Cores do header */
+  --color-header: #1e3a5f;
+  --color-header-dark: #152a47;
+  --color-nav: #1748ae;
+  
+  /* Sombras */
+  --shadow-soft: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.05);
+  
+  /* Animações */
+  --animate-fade-in: fadeIn 0.3s ease-in-out;
+  --animate-slide-up: slideUp 0.3s ease-out;
+}
+
+/* =============================================================================
+   ANIMAÇÕES
+   ============================================================================= */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* =============================================================================
+   CAMADA BASE - Resets e Acessibilidade
+   ============================================================================= */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Respeitar preferência do usuário por movimento reduzido (WCAG 2.3.3) */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    @apply antialiased bg-white;
+    color: #333;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  /* Foco visível para acessibilidade (WCAG 2.4.7)
+     Anel de foco claro e consistente em TODOS os elementos interativos */
+  *:focus-visible {
+    outline: 3px solid #2563eb;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Foco para alto contraste */
+  .high-contrast *:focus-visible {
+    outline: 3px solid #ffff00;
+    outline-offset: 2px;
+  }
+
+  /* Classes para aumento de fonte (WCAG 1.4.4 - Resize Text) */
+  .font-size-normal {
+    font-size: 100%;
+  }
+
+  .font-size-large {
+    font-size: 115%;
+  }
+
+  .font-size-larger {
+    font-size: 130%;
+  }
+
+  /* Modo de alto contraste (WCAG 1.4.3 - Contrast) */
+  .high-contrast {
+    filter: contrast(1.4);
+  }
+
+  .high-contrast body {
+    background-color: #000 !important;
+    color: #fff !important;
+  }
+
+  .high-contrast * {
+    border-color: currentColor !important;
+  }
+
+  /* Seleção de texto com contraste adequado */
+  ::selection {
+    background-color: #1748ae;
+    color: white;
+  }
+
+  /* Links: underline por padrão para acessibilidade (WCAG 1.4.1 - Use of Color) */
+  p a, li a, article a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  p a:hover, li a:hover, article a:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* =============================================================================
+   CAMADA DE COMPONENTES
+   ============================================================================= */
+
+@layer components {
+  /* Botão primário */
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-all duration-200;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    @apply disabled:opacity-50 disabled:pointer-events-none;
+    background-color: #1748ae;
+    color: white;
+    /* Tamanho mínimo de toque 44x44px (WCAG 2.5.5) */
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .btn-primary:hover {
+    background-color: #0d3380;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-all duration-200;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    @apply disabled:opacity-50 disabled:pointer-events-none;
+    background-color: #0094de;
+    color: white;
+    min-height: 44px;
+  }
+
+  .btn-secondary:hover {
+    background-color: #0077b3;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-all duration-200;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    @apply disabled:opacity-50 disabled:pointer-events-none;
+    border: 2px solid #1748ae;
+    color: #1748ae;
+    min-height: 44px;
+  }
+
+  .btn-outline:hover {
+    background-color: #1748ae;
+    color: white;
+  }
+
+  /* Botão da Cartilha ao Cidadão */
+  .cartilha-btn {
+    background-color: #1748ae;
+    color: white;
+    min-height: 44px;
+  }
+
+  .cartilha-btn:hover {
+    background-color: #0d3380;
+  }
+
+  /* Container responsivo - mobile first */
+  .container-main {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white rounded-lg border border-neutral-100 overflow-hidden;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Cor primária como texto */
+  .text-primary {
+    color: #1748ae;
+  }
+}
+
+/* =============================================================================
+   CAMADA DE UTILITÁRIOS
+   ============================================================================= */
+
+@layer utilities {
+  .text-truncate {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Scrollbar estilizada */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 3px;
+  }
+
+  .animate-in {
+    animation: var(--animate-fade-in), var(--animate-slide-up);
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  /* Sr-only (screen reader only) */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
