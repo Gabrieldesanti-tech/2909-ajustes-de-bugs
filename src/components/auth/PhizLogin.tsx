@@ -64,43 +64,27 @@ export default function PhizLogin() {
           const loginData = await apiPost<ApiEnvelope<AuthTokenData>>("/api/v1/integrations/phiz/login", {
             scanToken,
           });
+          const loginMeta = loginData as ApiEnvelope<AuthTokenData> & { code?: string };
 
           const session = extractSession(loginData);
 
-          if (
-            loginData &&
-            typeof loginData === "object" &&
-            "success" in (loginData as Record<string, unknown>) &&
-            (loginData as Record<string, unknown>).success &&
-            session
-          ) {
+          if (loginData.success && session) {
             setStoredSession(session);
             const me = await fetchCurrentUser().catch(() => session.user ?? null);
             setStep("success");
             const params = new URLSearchParams(window.location.search);
             const redirectParam = params.get("redirect");
-            const userRole = me?.role || session.user?.role;
+            const userRole = me?.role || session.user?.role || "";
             const isStaff = ["ADMIN", "MANAGER", "ANALYST", "ATTENDANT"].includes(userRole);
             const redirectTo = redirectParam ?? (isStaff ? "/admin" : "/");
             window.location.href = redirectTo;
-          } else if (
-            loginData &&
-            typeof loginData === "object" &&
-            "code" in (loginData as Record<string, unknown>) &&
-            (loginData as Record<string, unknown>).code === "PHIZ_NOT_LINKED"
-          ) {
+          } else if (loginMeta.code === "PHIZ_NOT_LINKED") {
             setError(
               "Sua conta Phiz ainda não está vinculada. Cadastre-se no portal e vincule nas configurações da sua conta."
             );
             setStep("error");
           } else {
-            const message =
-              loginData &&
-              typeof loginData === "object" &&
-              "error" in (loginData as Record<string, unknown>) &&
-              typeof (loginData as Record<string, unknown>).error === "string"
-                ? (loginData as Record<string, unknown>).error
-                : "Erro ao fazer login";
+            const message = typeof loginMeta.error === "string" ? loginMeta.error : "Erro ao fazer login";
             setError(message);
             setStep("error");
           }

@@ -283,6 +283,13 @@ Endpoints:
 Endpoints:
 - `GET /api/v1/admin/services`
 - `POST /api/v1/admin/services`
+- `PATCH /api/v1/admin/services/{id}`
+- `POST /api/v1/admin/categories`
+- `PATCH /api/v1/admin/categories/{id}`
+- `DELETE /api/v1/admin/categories/{id}`
+
+Observação:
+- no contrato atual não há `DELETE /api/v1/admin/services/{id}`; a inativação do serviço deve usar `PATCH /api/v1/admin/services/{id}` com `isActive`
 
 #### `/admin/secretarias`
 

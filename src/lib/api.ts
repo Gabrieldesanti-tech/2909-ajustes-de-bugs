@@ -257,6 +257,21 @@ export async function apiPatch<T>(
   );
 }
 
+export async function apiDelete<T>(
+  path: string,
+  body?: unknown,
+  options: { auth?: boolean } = {}
+) {
+  return apiRequest<T>(
+    path,
+    {
+      method: "DELETE",
+      body: body === undefined ? undefined : JSON.stringify(body),
+    },
+    options
+  );
+}
+
 export async function exchangeIdentity(input: {
   name: string;
   email: string;

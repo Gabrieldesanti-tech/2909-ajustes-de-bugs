@@ -158,6 +158,7 @@ export interface CatalogServiceSummary {
   id: string;
   name: string;
   slug: string;
+  description?: string;
 }
 
 export interface CatalogCategorySummary {
@@ -170,6 +171,11 @@ export interface CatalogCategorySummary {
   isActive?: boolean;
   departmentId?: string | null;
   services: CatalogServiceSummary[];
+}
+
+export interface AdminCategoryItem extends CatalogCategorySummary {
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CatalogServiceListItem {
@@ -355,7 +361,10 @@ export interface RequestAdminDetail extends RequestPublicDetail {
   department?: {
     name: string;
   } | null;
-  service?: RequestServiceRef;
+  service: RequestServiceRef & {
+    id: string;
+    name: string;
+  };
 }
 
 export interface RequestProtocolResponse {
