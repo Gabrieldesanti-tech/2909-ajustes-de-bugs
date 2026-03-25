@@ -2,16 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Shield, RefreshCw } from "lucide-react";
-
-interface AuditLogItem {
-  id: string;
-  action: string;
-  entity: string;
-  entityId: string | null;
-  ipAddress: string | null;
-  createdAt: string;
-  user: { name: string; email: string } | null;
-}
+import { apiGet, ApiEnvelope } from "@/lib/api";
+import type { ApiPaginatedData, AuditLogItem } from "@/types";
 
 const ACTION_LABELS: Record<string, string> = {
   CREATE: "Criação",
@@ -24,6 +16,7 @@ const ACTION_LABELS: Record<string, string> = {
   STATUS_CHANGE: "Mudança de Status",
   ASSIGNMENT: "Atribuição",
   COMMENT: "Comentário",
+  LINK: "Vínculo",
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -35,6 +28,7 @@ const ACTION_COLORS: Record<string, string> = {
   STATUS_CHANGE: "bg-purple-100 text-purple-700",
   EXPORT: "bg-cyan-100 text-cyan-700",
   COMMENT: "bg-indigo-100 text-indigo-700",
+  LINK: "bg-teal-100 text-teal-700",
 };
 
 export default function AuditoriaPage() {
@@ -51,10 +45,14 @@ export default function AuditoriaPage() {
       if (actionFilter) params.set("action", actionFilter);
       params.set("page", page.toString());
       params.set("limit", "50");
-      const res = await fetch(`/api/v1/admin/auditoria?${params}`);
-      if (res.status === 403) { window.location.href = "/auth?redirect=/admin/auditoria"; return; }
-      const json = await res.json();
-      if (json.success) { setLogs(json.data || []); setTotal(json.total || 0); }
+      const json = await apiGet<ApiEnvelope<ApiPaginatedData<AuditLogItem>>>(
+        `/api/v1/admin/audit-logs?${params.toString()}`,
+        { auth: true }
+      );
+      if (json.success) {
+        setLogs(json.data?.data || []);
+        setTotal(json.data?.total || 0);
+      }
     } catch (e) { console.error("Erro:", e); }
     finally { setLoading(false); }
   }, [actionFilter, page]);
@@ -107,7 +105,7 @@ export default function AuditoriaPage() {
                     <td className="py-3 px-4 text-gray-600 text-xs whitespace-nowrap">
                       {new Date(log.createdAt).toLocaleString("pt-BR")}
                     </td>
-                    <td className="py-3 px-4 text-gray-800 text-xs">{log.user?.name || "Sistema"}</td>
+                    <td className="py-3 px-4 text-gray-800 text-xs">{log.userId || "Sistema"}</td>
                     <td className="py-3 px-4">
                       <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${ACTION_COLORS[log.action] || "bg-gray-100 text-gray-700"}`}>
                         {ACTION_LABELS[log.action] || log.action}

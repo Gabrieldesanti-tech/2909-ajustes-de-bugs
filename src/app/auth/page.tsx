@@ -6,6 +6,7 @@ import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowRight } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import PhizLogin from "@/components/auth/PhizLogin";
+import { loginCitizen, registerCitizen } from "@/lib/api";
 import { formatCPF, formatPhone, validateCPF, validateEmail } from "@/lib/utils";
 
 type AuthMode = "login" | "register";
@@ -18,7 +19,6 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Form states
   const [loginData, setLoginData] = useState({ cpf: "", password: "" });
   const [registerData, setRegisterData] = useState({
     name: "",
@@ -28,6 +28,13 @@ export default function AuthPage() {
     password: "",
     confirmPassword: "",
   });
+
+  const redirectAfterAuth = (role?: string) => {
+    const params = new URLSearchParams(window.location.search);
+    const redirectParam = params.get("redirect");
+    const isStaff = ["ADMIN", "MANAGER", "ANALYST", "ATTENDANT"].includes(role || "");
+    window.location.href = redirectParam || (isStaff ? "/admin" : "/");
+  };
 
   const handleCPFChange = (value: string, isLogin: boolean) => {
     const formatted = formatCPF(value.replace(/\D/g, "").slice(0, 11));
@@ -45,52 +52,52 @@ export default function AuthPage() {
 
   const validateLoginForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!loginData.cpf) {
       newErrors.cpf = "CPF é obrigatório";
     } else if (!validateCPF(loginData.cpf)) {
       newErrors.cpf = "CPF inválido";
     }
-    
+
     if (!loginData.password) {
       newErrors.password = "Senha é obrigatória";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const validateRegisterForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!registerData.name || registerData.name.length < 3) {
       newErrors.name = "Nome deve ter pelo menos 3 caracteres";
     }
-    
+
     if (!registerData.cpf) {
       newErrors.cpf = "CPF é obrigatório";
     } else if (!validateCPF(registerData.cpf)) {
       newErrors.cpf = "CPF inválido";
     }
-    
+
     if (!registerData.email) {
       newErrors.email = "E-mail é obrigatório";
     } else if (!validateEmail(registerData.email)) {
       newErrors.email = "E-mail inválido";
     }
-    
+
     if (!registerData.phone) {
       newErrors.phone = "Telefone é obrigatório";
     }
-    
+
     if (!registerData.password || registerData.password.length < 6) {
       newErrors.password = "Senha deve ter pelo menos 6 caracteres";
     }
-    
+
     if (registerData.password !== registerData.confirmPassword) {
       newErrors.confirmPassword = "As senhas não conferem";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -98,33 +105,19 @@ export default function AuthPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateLoginForm()) return;
-    
+
     setIsLoading(true);
     try {
-      // Simulação de login - em produção, chamar API
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cpf: loginData.cpf.replace(/\D/g, ""),
-          password: loginData.password,
-        }),
+      const user = await loginCitizen({
+        cpf: loginData.cpf,
+        password: loginData.password,
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const params = new URLSearchParams(window.location.search);
-        const redirectParam = params.get("redirect");
-        const userRole = data.data?.user?.role;
-        const isStaff = ["ADMIN", "MANAGER", "ANALYST", "ATTENDANT"].includes(userRole);
-        const redirectTo = redirectParam || (isStaff ? "/admin" : "/");
-        window.location.href = redirectTo;
-      } else {
-        const data = await response.json();
-        setErrors({ form: data.error || "Erro ao fazer login" });
-      }
-    } catch {
-      setErrors({ form: "Erro de conexão. Tente novamente." });
+
+      redirectAfterAuth(user?.role);
+    } catch (error) {
+      setErrors({
+        form: error instanceof Error ? error.message : "Erro ao fazer login",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -133,31 +126,21 @@ export default function AuthPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateRegisterForm()) return;
-    
+
     setIsLoading(true);
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: registerData.name,
-          cpf: registerData.cpf.replace(/\D/g, ""),
-          email: registerData.email,
-          phone: registerData.phone.replace(/\D/g, ""),
-          password: registerData.password,
-        }),
+      const user = await registerCitizen({
+        name: registerData.name,
+        cpf: registerData.cpf,
+        email: registerData.email,
+        phone: registerData.phone,
+        password: registerData.password,
       });
-      
-      if (response.ok) {
-        // Redirecionar para login ou área logada
-        setMode("login");
-        setErrors({ form: "Cadastro realizado com sucesso! Faça login." });
-      } else {
-        const data = await response.json();
-        setErrors({ form: data.error || "Erro ao cadastrar" });
-      }
-    } catch {
-      setErrors({ form: "Erro de conexão. Tente novamente." });
+      redirectAfterAuth(user?.role);
+    } catch (error) {
+      setErrors({
+        form: error instanceof Error ? error.message : "Erro ao cadastrar",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -167,7 +150,6 @@ export default function AuthPage() {
     <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-xl shadow-soft border border-neutral-100 overflow-hidden">
-          {/* Tabs */}
           <div className="flex border-b border-neutral-200">
             <button
               onClick={() => {
@@ -199,7 +181,6 @@ export default function AuthPage() {
           </div>
 
           <div className="p-6">
-            {/* Erro geral */}
             {errors.form && (
               <div
                 className={`mb-4 p-3 rounded-lg text-sm ${
@@ -213,7 +194,6 @@ export default function AuthPage() {
             )}
 
             {mode === "login" ? (
-              /* Login: CPF ou Phiz */
               <div className="space-y-4">
                 {loginMethod === "cpf" ? (
                   <form onSubmit={handleLogin} className="space-y-4">
@@ -285,6 +265,7 @@ export default function AuthPage() {
                     </div>
                   </div>
                 ) : null}
+
                 {loginMethod === "cpf" ? (
                   <button
                     type="button"
@@ -304,7 +285,6 @@ export default function AuthPage() {
                 )}
               </div>
             ) : (
-              /* Formulário de Cadastro */
               <form onSubmit={handleRegister} className="space-y-4">
                 <Input
                   label="Nome completo"
@@ -424,7 +404,6 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* Link para voltar */}
         <div className="mt-6 text-center">
           <Link href="/" className="text-sm text-neutral-600 hover:text-primary">
             ← Voltar para o início

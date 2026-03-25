@@ -1,238 +1,147 @@
-# Portal 2909 - Central de Atendimento ao Cidadão
+# Portal 2909
 
-Portal de serviços da Prefeitura Municipal de Belford Roxo, inspirado no 1746.rio da Prefeitura do Rio de Janeiro.
+Frontend Next.js do Portal 2909 consumindo um backend HTTP externo via BFF no Next.js.
 
-![Next.js](https://img.shields.io/badge/Next.js-16.1-black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38bdf8)
+O projeto foi refatorado para funcionar como `frontend-only`:
+- sem Prisma
+- sem catálogo estático duplicado
+- com proxy server-side em `src/app/api/v1/[...path]/route.ts`
 
----
+Toda a leitura e escrita de dados agora acontece via chamadas para `/api/v1/*`, atendidas por um proxy no servidor do Next que conversa com o backend definido em `BACKEND_API_URL`.
 
-## 🚀 Como Rodar o Projeto
+## Stack
+
+- `Next.js 16`
+- `React 19`
+- `TypeScript`
+- `Tailwind CSS 4`
+
+## Como rodar localmente
 
 ### Pré-requisitos
 
-Certifique-se de ter instalado:
-- **Node.js** versão 18 ou superior ([download](https://nodejs.org/))
-- **npm** (já vem com o Node.js)
+- `Node.js 20.9+`
+- `npm 10+`
+- um backend HTTP disponível com os endpoints do contrato anexado
 
-Para verificar se já tem instalado, abra o terminal e digite:
+### 1. Configurar ambiente
+
+Crie um arquivo `.env.local` com base no exemplo:
+
 ```bash
-node -v   # deve mostrar v18.x.x ou superior
-npm -v    # deve mostrar 9.x.x ou superior
+cp .env.example .env.local
 ```
 
----
+Variáveis:
 
-### 🪟 Instalação no Windows
+- `BACKEND_API_URL`: URL base do backend, por exemplo `http://localhost:4000`
+- `SERVICE_ACCOUNT_CLIENT_ID`: client id da service account usada pelo BFF
+- `SERVICE_ACCOUNT_CLIENT_SECRET`: client secret da service account usada pelo BFF
 
-1. **Baixe o Node.js** em [nodejs.org](https://nodejs.org/) (escolha a versão LTS)
-2. **Instale** seguindo o assistente (próximo, próximo, concluir)
-3. **Abra o Prompt de Comando, PowerShell ou Terminal do VS Code**
-4. **Navegue até a pasta do projeto:**
-```cmd
-cd C:\Caminho\Para\portal-2909
+Exemplo:
+
+```env
+BACKEND_API_URL=http://localhost:4000
+SERVICE_ACCOUNT_CLIENT_ID=web-portal
+SERVICE_ACCOUNT_CLIENT_SECRET=
 ```
 
-5. **Instale as dependências:**
-```cmd
-npm install
-```
+### 2. Instalar dependências
 
-6. **Rode o servidor:**
-```cmd
-npm run dev
-```
-
-7. **Acesse no navegador:**
-```
-http://localhost:3000
-```
-
-> 💡 **Dica:** No Windows, você pode abrir o terminal diretamente na pasta clicando com botão direito na pasta e selecionando "Abrir no Terminal" ou "Abrir janela do PowerShell aqui".
-
----
-
-### 🍎 Instalação no macOS / Linux
-
-1. **Instale o Node.js:**
-   - macOS: `brew install node` (com Homebrew) ou baixe em [nodejs.org](https://nodejs.org/)
-   - Linux: `sudo apt install nodejs npm` (Ubuntu/Debian)
-
-2. **Abra o Terminal**
-
-3. **Navegue até a pasta do projeto:**
-```bash
-cd /caminho/para/portal-2909
-```
-
-4. **Instale as dependências:**
 ```bash
 npm install
 ```
 
-5. **Rode o servidor:**
+### 3. Subir o frontend
+
 ```bash
 npm run dev
 ```
 
-6. **Acesse no navegador:**
-```
-http://localhost:3000
-```
+A aplicação ficará disponível em [http://localhost:3000](http://localhost:3000).
 
----
+## Fluxo de autenticação local
 
-## 📦 Comandos Disponíveis
+Como o frontend não tem mais backend embutido, a página [src/app/auth/page.tsx](/Users/kauehmoreno/devops/rkj/2909-ajustes-de-bugs/src/app/auth/page.tsx) trabalha com os contratos expostos pelo backend:
 
-| Comando | Descrição |
-|---------|-----------|
-| `npm run dev` | Inicia o servidor de desenvolvimento |
-| `npm run build` | Gera a build de produção |
-| `npm run start` | Inicia o servidor de produção (após build) |
-| `npm run lint` | Verifica erros de código |
+- colar manualmente um bearer token
+- usar `POST /api/v1/auth/login`
+- usar `POST /api/v1/auth/register`
+- usar `POST /api/v1/auth/exchange`
+- usar o fluxo Phiz
 
----
+O token do usuário continua salvo em `localStorage` pelo cliente HTTP em [src/lib/api.ts](/Users/kauehmoreno/devops/rkj/2909-ajustes-de-bugs/src/lib/api.ts), mas a service account passa a ser gerida apenas no servidor pelo proxy em [src/app/api/v1/[...path]/route.ts](/Users/kauehmoreno/devops/rkj/2909-ajustes-de-bugs/src/app/api/v1/[...path]/route.ts).
 
-## 📁 Estrutura do Projeto
+## Arquitetura atual
 
-```
-portal-2909/
-├── public/                    # Arquivos públicos (imagens, favicon)
-│   ├── images/
-│   │   ├── logo-2909.png      # Logo do portal
-│   │   └── logo-belford-roxo.png  # Brasão da prefeitura
-│   ├── favicon.ico
-│   └── icon-192.png
-│
-├── src/
-│   ├── app/                   # Páginas (App Router do Next.js)
-│   │   ├── page.tsx           # Página inicial
-│   │   ├── layout.tsx         # Layout principal
-│   │   ├── globals.css        # Estilos globais
-│   │   ├── auth/              # Página de login/cadastro
-│   │   ├── servicos/          # Páginas de serviços
-│   │   ├── solicitacao/       # Página de nova solicitação
-│   │   ├── consulta/          # Consulta de protocolo
-│   │   ├── faq/               # Perguntas frequentes
-│   │   ├── ouvidoria/         # Ouvidoria
-│   │   └── api/               # Rotas de API
-│   │
-│   ├── components/            # Componentes reutilizáveis
-│   │   ├── layout/
-│   │   │   ├── Header.tsx     # Cabeçalho
-│   │   │   ├── Footer.tsx     # Rodapé
-│   │   │   └── Sidebar.tsx    # Menu lateral
-│   │   └── ui/
-│   │       ├── Banner.tsx     # Carrossel da home
-│   │       ├── Button.tsx     # Botão
-│   │       ├── Input.tsx      # Campo de entrada
-│   │       └── Card.tsx       # Card
-│   │
-│   ├── data/
-│   │   └── services.ts        # Dados dos serviços e categorias
-│   │
-│   ├── lib/
-│   │   ├── utils.ts           # Funções utilitárias
-│   │   ├── auth.ts            # Funções de autenticação
-│   │   └── requests.ts        # Funções de solicitações
-│   │
-│   └── types/
-│       └── index.ts           # Tipos TypeScript
-│
-├── package.json
-├── tsconfig.json
-├── postcss.config.mjs
-└── README.md
-```
+### Pastas principais
 
----
+- `src/app`: páginas do portal e do admin
+- `src/components`: componentes de UI e layout
+- `src/lib/api.ts`: cliente HTTP, sessão local e helpers de autenticação
+- `src/types`: tipos compartilhados
+- `docs`: documentação de contratos e mapeamento
 
-## 🎨 Tecnologias Utilizadas
+### BFF para backend
 
-- **[Next.js 16](https://nextjs.org/)** - Framework React com SSR
-- **[TypeScript](https://www.typescriptlang.org/)** - Tipagem estática
-- **[Tailwind CSS 4](https://tailwindcss.com/)** - Estilização
-- **[Lucide React](https://lucide.dev/)** - Ícones
+O arquivo [src/app/api/v1/[...path]/route.ts](/Users/kauehmoreno/devops/rkj/2909-ajustes-de-bugs/src/app/api/v1/[...path]/route.ts) recebe as chamadas de `/api/v1/*`, repassa ao backend e injeta o header `x-service-authorization` com um token de service account obtido no servidor.
 
----
+Isso mantém o frontend simples:
+- sem expor a URL real do backend no navegador
+- sem expor `clientSecret` ou token de service account no frontend
+- com um ponto único para autenticação técnica entre web e API
 
-## 🔧 Configurações
+## Scripts
 
-### Cores da Prefeitura de Belford Roxo
+- `npm run dev`: desenvolvimento
+- `npm run build`: build de produção
+- `npm run start`: sobe a build de produção
+- `npm run lint`: valida o código
 
-As cores principais estão definidas em `src/app/globals.css`:
+## Docker
 
-- **Azul Principal:** `#1748ae`
-- **Azul Secundário:** `#0094de`
-- **Amarelo Destaque:** `#eab308`
-
-### Alterando o Logo
-
-Para trocar os logos, substitua os arquivos em:
-- `public/images/logo-2909.png` - Logo do portal (recomendado: 400x170px)
-- `public/images/logo-belford-roxo.png` - Brasão da prefeitura
-
----
-
-## 📋 Funcionalidades
-
-- ✅ Listagem de categorias de serviços
-- ✅ Detalhes de cada serviço com informações completas
-- ✅ Formulário de abertura de solicitação
-- ✅ Consulta de protocolo
-- ✅ Sistema de login/cadastro (frontend)
-- ✅ Design responsivo (mobile e desktop)
-- ✅ Acessibilidade (aumentar/diminuir fonte, alto contraste)
-- ✅ Banner carrossel na página inicial
-- ✅ Integração com VLibras
-
----
-
-## 🚀 Deploy em Produção
-
-### Opção 1: Vercel (Recomendado)
-
-1. Crie uma conta em [vercel.com](https://vercel.com)
-2. Conecte seu repositório GitHub
-3. Deploy automático!
-
-### Opção 2: Build Manual
+Build local da imagem:
 
 ```bash
-# Gerar build de produção
-npm run build
-
-# Iniciar servidor
-npm run start
+docker build -t portal-2909 .
 ```
 
----
+Executar:
 
-## 📝 Próximos Passos (TODO)
+```bash
+docker run --rm -p 3000:3000 \
+  -e BACKEND_API_URL=http://host.docker.internal:4000 \
+  portal-2909
+```
 
-- [ ] Conectar com banco de dados real
-- [ ] Implementar autenticação com JWT
-- [ ] Sistema de notificações por email
-- [ ] Painel administrativo
-- [ ] Integração com API de geolocalização
+Se o backend rodar fora do container, ajuste `BACKEND_API_URL` conforme o ambiente.
 
----
+Subida simplificada com Compose:
 
-## 👥 Contribuição
+```bash
+docker compose up --build
+```
 
-1. Faça um fork do projeto
-2. Crie uma branch: `git checkout -b minha-feature`
-3. Commit: `git commit -m 'Adiciona nova feature'`
-4. Push: `git push origin minha-feature`
-5. Abra um Pull Request
+## Deploy
 
----
+O projeto gera saída `standalone`, então ele pode rodar em:
 
-## 📄 Licença
+- Docker
+- Railway
+- Fly.io
+- ECS/Fargate
+- qualquer ambiente com Node 20+
 
-Este projeto foi desenvolvido para a Prefeitura Municipal de Belford Roxo.
+## Observações da refatoração
 
----
+- o backend antigo embutido no Next foi removido
+- a cópia duplicada `2909-main` foi eliminada
+- o catálogo de serviços agora depende exclusivamente da API
+- as telas admin usam guard client-side com bearer token
+- a autenticação técnica da service account web agora acontece server-side
 
-**Desenvolvido com ❤️ para os cidadãos de Belford Roxo**
+## Referências úteis
+
+- Contratos e mapeamento: [docs/backend-frontend-contracts.md](/Users/kauehmoreno/devops/rkj/2909-ajustes-de-bugs/docs/backend-frontend-contracts.md)
+- Cliente HTTP: [src/lib/api.ts](/Users/kauehmoreno/devops/rkj/2909-ajustes-de-bugs/src/lib/api.ts)
+- Proxy/BFF: [src/app/api/v1/[...path]/route.ts](/Users/kauehmoreno/devops/rkj/2909-ajustes-de-bugs/src/app/api/v1/[...path]/route.ts)

@@ -1,13 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, ChevronDown, Search, HelpCircle } from "lucide-react";
-import { faqData } from "@/data/services";
+import { ChevronRight, ChevronDown, Search, HelpCircle, Loader2 } from "lucide-react";
+import { apiGet, ApiEnvelope } from "@/lib/api";
+import type { FAQItem } from "@/types";
 
 export default function FAQPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [openItems, setOpenItems] = useState<string[]>([]);
+  const [faqData, setFaqData] = useState<FAQItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiGet<ApiEnvelope<FAQItem[]>>("/api/v1/public/faqs")
+      .then((json) => {
+        if (json.success) setFaqData(json.data || []);
+      })
+      .catch(() => {
+        setFaqData([]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const filteredFAQ = searchQuery
     ? faqData.filter(
@@ -71,7 +85,12 @@ export default function FAQPage() {
 
         {/* Lista de perguntas */}
         <div className="bg-white rounded-lg shadow-card border border-neutral-100 overflow-hidden">
-          {filteredFAQ.length > 0 ? (
+          {loading ? (
+            <div className="px-6 py-12 text-center text-neutral-500">
+              <Loader2 size={24} className="animate-spin mx-auto mb-3 text-primary" />
+              <p>Carregando perguntas frequentes...</p>
+            </div>
+          ) : filteredFAQ.length > 0 ? (
             <div className="divide-y divide-neutral-100">
               {filteredFAQ.map((item) => (
                 <div key={item.id} className="overflow-hidden">

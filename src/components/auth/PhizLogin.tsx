@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { QrCode, Loader2 } from "lucide-react";
 import Button from "@/components/ui/Button";
+import { apiGet, apiPost, ApiEnvelope, extractSession, fetchCurrentUser, setStoredSession } from "@/lib/api";
+import type { AuthTokenData, PhizQrCodeData, PhizScanStatusResponse } from "@/types";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -16,23 +18,19 @@ export default function PhizLogin() {
     setStep("loading");
     setError(null);
     try {
-      const res = await fetch("/api/v1/phiz/qrcode", { method: "POST" });
-      const contentType = res.headers.get("content-type") ?? "";
-      if (!contentType.includes("application/json")) {
-        setError(
-          "API indisponível. Verifique se o site está registrado na plataforma Phiz."
-        );
-        setStep("error");
-        return;
-      }
-      const data = await res.json();
-      if (!data.success || !data.data?.qrcode_url) {
+      const data = await apiPost<ApiEnvelope<PhizQrCodeData>>(
+        "/api/v1/integrations/phiz/qrcode"
+      );
+      const qrcodeUrl = data.data?.qrcodeUrl;
+      const scanToken = data.data?.scanToken;
+
+      if (!data.success || !qrcodeUrl || !scanToken) {
         setError(data.error ?? "Falha ao gerar QR code");
         setStep("error");
         return;
       }
-      setQrcodeUrl(data.data.qrcode_url);
-      setScanToken(data.data.scan_token);
+      setQrcodeUrl(qrcodeUrl);
+      setScanToken(scanToken);
       setStep("scanning");
     } catch {
       setError(
@@ -47,40 +45,47 @@ export default function PhizLogin() {
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/v1/phiz/check-scan?token=${encodeURIComponent(scanToken)}`);
-        const data = await res.json();
+        const data = await apiGet<ApiEnvelope<never> & PhizScanStatusResponse>(
+          `/api/v1/integrations/phiz/check-scan?token=${encodeURIComponent(scanToken)}`
+        );
         if (!data.success) return;
 
-        if (data.status === "EXPIRED") {
+        const status = data.status;
+        const phizUserId = data.phizUserId;
+
+        if (status === "EXPIRED") {
           setError("QR code expirado. Clique para gerar um novo.");
           setStep("error");
           return;
         }
 
-        if (data.status === "COMPLETED" && data.phiz_user_id) {
+        if (status === "COMPLETED" && phizUserId) {
           setStep("loading");
-          const loginRes = await fetch("/api/v1/phiz/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ scan_token: scanToken }),
+          const loginData = await apiPost<ApiEnvelope<AuthTokenData>>("/api/v1/integrations/phiz/login", {
+            scanToken,
           });
-          const loginData = await loginRes.json();
+          const loginMeta = loginData as ApiEnvelope<AuthTokenData> & { code?: string };
 
-          if (loginData.success) {
+          const session = extractSession(loginData);
+
+          if (loginData.success && session) {
+            setStoredSession(session);
+            const me = await fetchCurrentUser().catch(() => session.user ?? null);
             setStep("success");
             const params = new URLSearchParams(window.location.search);
             const redirectParam = params.get("redirect");
-            const userRole = loginData.data?.user?.role;
+            const userRole = me?.role || session.user?.role || "";
             const isStaff = ["ADMIN", "MANAGER", "ANALYST", "ATTENDANT"].includes(userRole);
             const redirectTo = redirectParam ?? (isStaff ? "/admin" : "/");
             window.location.href = redirectTo;
-          } else if (loginData.code === "PHIZ_NOT_LINKED") {
+          } else if (loginMeta.code === "PHIZ_NOT_LINKED") {
             setError(
               "Sua conta Phiz ainda não está vinculada. Cadastre-se no portal e vincule nas configurações da sua conta."
             );
             setStep("error");
           } else {
-            setError(loginData.error ?? "Erro ao fazer login");
+            const message = typeof loginMeta.error === "string" ? loginMeta.error : "Erro ao fazer login";
+            setError(message);
             setStep("error");
           }
         }

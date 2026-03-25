@@ -1,0 +1,8 @@
+services:
+  portal-2909:
+    build:
+      context: .
+    ports:
+      - "3000:3000"
+    environment:
+      BACKEND_API_URL: ${BACKEND_API_URL:-http://host.docker.internal:4000}

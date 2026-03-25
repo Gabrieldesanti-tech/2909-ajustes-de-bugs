@@ -8,8 +8,13 @@ import {
   Menu, 
   X, 
   Moon,
-  User
+  User,
+  ChevronDown,
+  LogOut,
+  Shield
 } from "lucide-react";
+import { fetchCurrentUser, getStoredSession, logout } from "@/lib/api";
+import type { AuthUser } from "@/types";
 import { FontSize, ContrastMode } from "@/types";
 
 const navItems = [
@@ -24,9 +29,18 @@ const navItems = [
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [fontSize, setFontSize] = useState<FontSize>("normal");
   const [contrastMode, setContrastMode] = useState<ContrastMode>("normal");
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  const isStaff = ["ADMIN", "MANAGER", "ANALYST", "ATTENDANT"].includes(currentUser?.role || "");
+  const firstName = currentUser?.name?.trim().split(/\s+/)[0] || "Usuário";
+  const maskedCpf = currentUser?.cpf
+    ? currentUser.cpf.replace(/^(\d{3})\d{5}(\d{3})$/, "$1.***.**$2")
+    : null;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -59,6 +73,156 @@ export default function Header() {
     if (searchQuery.trim()) {
       window.location.href = `/busca?q=${encodeURIComponent(searchQuery)}`;
     }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncUser = async () => {
+      const storedUser = getStoredSession()?.user ?? null;
+      if (isMounted) {
+        setCurrentUser(storedUser);
+      }
+
+      try {
+        const freshUser = await fetchCurrentUser();
+        if (isMounted) {
+          setCurrentUser(freshUser);
+        }
+      } catch {
+        const latestStoredUser = getStoredSession()?.user ?? null;
+        if (isMounted) {
+          setCurrentUser(latestStoredUser);
+        }
+      } finally {
+        if (isMounted) {
+          setIsAuthLoading(false);
+        }
+      }
+    };
+
+    const handleStorage = () => {
+      const storedUser = getStoredSession()?.user ?? null;
+      setCurrentUser(storedUser);
+      setIsAuthLoading(false);
+    };
+
+    syncUser();
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("focus", syncUser);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("focus", syncUser);
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      setCurrentUser(null);
+      setIsUserMenuOpen(false);
+      setIsMenuOpen(false);
+      window.location.href = "/";
+    }
+  };
+
+  const renderDesktopAuth = () => {
+    if (isAuthLoading) {
+      return (
+        <div
+          className="hidden md:flex items-center rounded-full px-4 py-2 text-sm text-white/80"
+          style={{ backgroundColor: "rgba(255,255,255,0.12)" }}
+        >
+          Verificando acesso...
+        </div>
+      );
+    }
+
+    if (!currentUser) {
+      return (
+        <>
+          <Link
+            href="/auth"
+            className="hidden md:flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white transition-colors"
+            style={{ backgroundColor: "rgba(255,255,255,0.16)" }}
+          >
+            <User size={16} />
+            Entrar / Cadastrar
+          </Link>
+          <Link
+            href="/admin"
+            className="hidden md:flex items-center gap-2 text-white/90 hover:text-white transition-colors text-sm"
+          >
+            Área do Admin
+          </Link>
+        </>
+      );
+    }
+
+    return (
+      <>
+        {isStaff && (
+          <Link
+            href="/admin"
+            className="hidden md:flex items-center gap-2 text-white/90 hover:text-white transition-colors text-sm"
+          >
+            <Shield size={16} />
+            Painel Admin
+          </Link>
+        )}
+
+        <div className="relative hidden md:block">
+          <button
+            type="button"
+            onClick={() => setIsUserMenuOpen((open) => !open)}
+            className="flex items-center gap-3 rounded-full px-3 py-2 text-white transition-colors"
+            style={{ backgroundColor: "rgba(255,255,255,0.16)" }}
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/18">
+              <User size={18} />
+            </div>
+            <div className="text-left leading-tight">
+              <div className="text-xs text-white/70">Conectado</div>
+              <div className="max-w-36 truncate text-sm font-semibold">{firstName}</div>
+            </div>
+            <ChevronDown size={16} className="text-white/80" />
+          </button>
+
+          {isUserMenuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-64 overflow-hidden rounded-2xl border border-white/15 bg-white shadow-2xl">
+              <div className="border-b border-neutral-100 px-4 py-3">
+                <p className="text-sm font-semibold text-neutral-900">{currentUser.name}</p>
+                <p className="text-xs text-neutral-500">{currentUser.email}</p>
+                {maskedCpf && <p className="mt-1 text-xs text-neutral-500">CPF {maskedCpf}</p>}
+              </div>
+              <div className="p-2">
+                {isStaff && (
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-neutral-700 transition-colors hover:bg-neutral-100"
+                    onClick={() => setIsUserMenuOpen(false)}
+                  >
+                    <Shield size={16} />
+                    Ir para o painel
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
+                >
+                  <LogOut size={16} />
+                  Sair
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </>
+    );
   };
 
   return (
@@ -138,13 +302,7 @@ export default function Header() {
                 </div>
               </form>
 
-              {/* Área do Admin */}
-              <Link
-                href="/admin"
-                className="hidden md:flex items-center gap-2 text-white/90 hover:text-white transition-colors text-sm"
-              >
-                Área do Admin
-              </Link>
+              {renderDesktopAuth()}
 
               {/* Busca mobile */}
               <button
@@ -222,14 +380,54 @@ export default function Header() {
                 </Link>
               ))}
               <div className="pt-4 border-t border-white/20 mt-4">
-                <Link
-                  href="/admin"
-                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-white hover:bg-white/10 rounded"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <User size={18} />
-                  Área do Admin
-                </Link>
+                {currentUser ? (
+                  <div className="space-y-2">
+                    <div className="px-4 py-3 rounded bg-white/10 text-white">
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/60">
+                        Conectado
+                      </p>
+                      <p className="mt-1 text-sm font-semibold">{currentUser.name}</p>
+                      <p className="text-xs text-white/80">{currentUser.email}</p>
+                    </div>
+                    {isStaff && (
+                      <Link
+                        href="/admin"
+                        className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-white hover:bg-white/10 rounded"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Shield size={18} />
+                        Painel Admin
+                      </Link>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-white hover:bg-white/10 rounded"
+                    >
+                      <LogOut size={18} />
+                      Sair
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Link
+                      href="/auth"
+                      className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-white hover:bg-white/10 rounded"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <User size={18} />
+                      Entrar / Cadastrar
+                    </Link>
+                    <Link
+                      href="/admin"
+                      className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-white hover:bg-white/10 rounded"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Shield size={18} />
+                      Área do Admin
+                    </Link>
+                  </div>
+                )}
               </div>
             </nav>
           </div>

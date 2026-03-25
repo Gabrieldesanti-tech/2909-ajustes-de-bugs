@@ -63,7 +63,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-
   // Disable floating dev indicator ("N" button)
   devIndicators: false,
 

@@ -13,35 +13,8 @@ import {
   Download,
   RefreshCw,
 } from "lucide-react";
-
-// =============================================================================
-// Página de Gestão de Solicitações (Admin)
-// =============================================================================
-// Funcionalidades:
-// - Listagem paginada com filtros avançados
-// - Busca por protocolo ou descrição
-// - Filtros: status, período, origem, SLA
-// - Exportação de dados
-// - Link para detalhe individual
-// =============================================================================
-
-interface RequestListItem {
-  id: string;
-  protocol: string;
-  status: string;
-  origin: string;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-  slaBreached: boolean;
-  slaDeadline: string;
-  service: { name: string; category: { name: string } };
-  address: { neighborhood: string } | null;
-  user: { name: string; email: string } | null;
-  assignee: { name: string } | null;
-  department: { name: string } | null;
-  _count: { attachments: number; comments: number };
-}
+import { apiGet, ApiEnvelope, getAuthorizationHeaderValue } from "@/lib/api";
+import type { AdminRequestListItem, ApiPaginatedData } from "@/types";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Todos os status" },
@@ -77,7 +50,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function SolicitacoesPage() {
-  const [requests, setRequests] = useState<RequestListItem[]>([]);
+  const [requests, setRequests] = useState<AdminRequestListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -104,20 +77,15 @@ export default function SolicitacoesPage() {
       params.set("page", page.toString());
       params.set("limit", limit.toString());
 
-      const res = await fetch(`/api/v1/requests?${params.toString()}`);
-      
-      if (res.status === 403 || res.status === 401) {
-        // Sessão expirada ou inválida - redirecionar para login
-        window.location.href = "/auth?redirect=/admin/solicitacoes";
-        return;
-      }
-
-      const json = await res.json();
+      const json = await apiGet<ApiEnvelope<ApiPaginatedData<AdminRequestListItem>>>(
+        `/api/v1/admin/requests?${params.toString()}`,
+        { auth: true }
+      );
       
       if (json.success) {
-        setRequests(json.data || []);
-        setTotal(json.total || 0);
-        setTotalPages(json.totalPages || 0);
+        setRequests(json.data?.data || []);
+        setTotal(json.data?.total || 0);
+        setTotalPages(json.data?.totalPages || 0);
       }
     } catch (error) {
       console.error("Erro ao buscar solicitações:", error);
@@ -146,12 +114,29 @@ export default function SolicitacoesPage() {
   };
 
   const handleExport = () => {
-    const params = new URLSearchParams();
-    params.set("format", "csv");
-    if (dateFrom) params.set("dateFrom", dateFrom);
-    if (dateTo) params.set("dateTo", dateTo);
-    if (status) params.set("status", status);
-    window.open(`/api/v1/admin/reports/export?${params.toString()}`);
+    const run = async () => {
+      const params = new URLSearchParams();
+      params.set("format", "csv");
+      if (dateFrom) params.set("dateFrom", dateFrom);
+      if (dateTo) params.set("dateTo", dateTo);
+      if (status) params.set("status", status);
+
+      const authorization = getAuthorizationHeaderValue();
+      const response = await fetch(`/api/v1/admin/reports/requests/export?${params.toString()}`, {
+        headers: authorization ? { Authorization: authorization } : undefined,
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `relatorio-solicitacoes-${new Date().toISOString().split("T")[0]}.csv`;
+      anchor.click();
+      window.URL.revokeObjectURL(url);
+    };
+
+    run().catch((error) => {
+      console.error("Erro ao exportar CSV:", error);
+    });
   };
 
   return (
@@ -300,10 +285,10 @@ export default function SolicitacoesPage() {
                     <td className="py-3 px-4">
                       <div>
                         <p className="font-medium text-gray-800 truncate max-w-48">
-                          {req.service.name}
+                          {req.service?.name || req.serviceId || "Serviço não informado"}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {req.service.category.name}
+                          {req.service?.category?.name || "Categoria não informada"}
                         </p>
                       </div>
                     </td>

@@ -3,24 +3,37 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Bell, LogOut, User, ChevronDown } from "lucide-react";
+import { apiGet, ApiEnvelope, fetchCurrentUser, logout } from "@/lib/api";
+import type { NotificationCountData } from "@/types";
 
 export default function AdminHeader() {
   const [showMenu, setShowMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [userName, setUserName] = useState("Administrador");
 
   useEffect(() => {
     const fetchCount = async () => {
       try {
-        const res = await fetch("/api/v1/admin/notificacoes?countOnly=true");
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success) setUnreadCount(json.unread || 0);
-        }
+        const json = await apiGet<ApiEnvelope<NotificationCountData>>(
+          "/api/v1/admin/notifications?countOnly=true",
+          { auth: true }
+        );
+        setUnreadCount(Number(json.data?.unread || 0));
       } catch {
         // silenciar erro
       }
     };
 
+    const fetchMe = async () => {
+      try {
+        const me = await fetchCurrentUser();
+        if (me?.name) setUserName(me.name);
+      } catch {
+        // silenciar erro
+      }
+    };
+
+    fetchMe();
     fetchCount();
     // Atualizar a cada 60 segundos
     const interval = setInterval(fetchCount, 60000);
@@ -29,7 +42,7 @@ export default function AdminHeader() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/v1/auth/logout", { method: "POST" });
+      await logout();
       window.location.href = "/auth";
     } catch {
       window.location.href = "/auth";
@@ -72,7 +85,7 @@ export default function AdminHeader() {
               <User size={16} className="text-blue-600" />
             </div>
             <span className="text-sm font-medium text-gray-700 hidden md:block">
-              Administrador
+              {userName}
             </span>
             <ChevronDown size={14} className="text-gray-400" />
           </button>

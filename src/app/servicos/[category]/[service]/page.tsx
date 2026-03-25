@@ -1,63 +1,66 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, Clock, BookOpen, Users, Info, FileText, Scale } from "lucide-react";
+import { BookOpen, ChevronRight, Clock, FileText, Info, Loader2, Scale, Users } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
-import { getServiceBySlug, getCategoryBySlug } from "@/data/services";
-import { getServiceBySlugsFromDb } from "@/lib/services-db";
-import type { Metadata } from "next";
+import { apiGet } from "@/lib/api";
+import type { ApiEnvelope, CatalogServiceDetail, DetailedServiceInfo } from "@/types";
 
-interface PageProps {
-  params: Promise<{ category: string; service: string }>;
-}
+export default function ServicePage() {
+  const params = useParams<{ category: string; service: string }>();
+  const category = params.category;
+  const service = params.service;
+  const [serviceData, setServiceData] = useState<CatalogServiceDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [missing, setMissing] = useState(false);
 
-export const dynamic = "force-dynamic";
+  useEffect(() => {
+    let active = true;
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { category, service } = await params;
-  const fromDb = await getServiceBySlugsFromDb(category, service);
-  const serviceData = fromDb ?? getServiceBySlug(category, service);
+    const load = async () => {
+      setLoading(true);
+      try {
+        const payload = await apiGet<ApiEnvelope<CatalogServiceDetail>>(
+          `/api/v1/catalog/services/${category}/${service}`
+        );
+        const data = payload.data;
+        if (!active) return;
+        setServiceData(data || null);
+      } catch {
+        if (!active) return;
+        setMissing(true);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
 
-  if (!serviceData) {
-    return { title: "Serviço não encontrado" };
+    load();
+
+    return () => {
+      active = false;
+    };
+  }, [category, service]);
+
+  if (missing) {
+    return (
+      <div className="container-main py-12 text-center text-neutral-500">
+        <p>Serviço não encontrado.</p>
+      </div>
+    );
   }
 
-  return {
-    title: serviceData.name,
-    description: serviceData.description,
-  };
-}
+  const parsedDetailedInfo = serviceData?.detailedInfo as DetailedServiceInfo | undefined;
 
-type DetailedInfo = {
-  oQueE?: string;
-  paraQueServe?: string;
-  quemPodeSolicitar?: string;
-  informacoesComplementares?: string;
-  informacoesNecessarias?: string[];
-  tempoAtendimento?: string;
-  legislacao?: string[];
-};
-
-export default async function ServicePage({ params }: PageProps) {
-  const { category, service } = await params;
-  const fromDb = await getServiceBySlugsFromDb(category, service);
-  const serviceData = fromDb ?? getServiceBySlug(category, service);
-  const categoryData = fromDb?.category ? { name: fromDb.category.name, slug: fromDb.category.slug } : getCategoryBySlug(category);
-
-  if (!categoryData || !serviceData) {
-    notFound();
-  }
-
-  const detailedInfo = (serviceData.detailedInfo ?? (serviceData as { detailedInfo?: DetailedInfo }).detailedInfo) as DetailedInfo | undefined;
+  const categoryData = serviceData?.category;
 
   return (
     <div className="container-main py-8">
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Sidebar */}
         <Sidebar activeCategory={category} />
 
-        {/* Conteúdo principal */}
         <div className="flex-1">
-          {/* Breadcrumb */}
           <nav className="text-sm mb-6">
             <ol className="flex items-center gap-2 text-neutral-500 flex-wrap">
               <li>
@@ -73,132 +76,78 @@ export default async function ServicePage({ params }: PageProps) {
               </li>
               <ChevronRight size={14} />
               <li>
-                <Link
-                  href={`/servicos/${category}`}
-                  className="hover:text-primary transition-colors"
-                >
-                  {categoryData.name}
+                <Link href={`/servicos/${category}`} className="hover:text-primary transition-colors">
+                  {categoryData?.name || category}
                 </Link>
               </li>
               <ChevronRight size={14} />
-              <li className="text-primary font-medium">{serviceData.name}</li>
+              <li className="text-primary font-medium">
+                {serviceData?.name || "Carregando..."}
+              </li>
             </ol>
           </nav>
 
-          {/* Detalhes do serviço */}
           <div className="bg-white rounded-lg shadow-card border border-neutral-100 overflow-hidden">
             <div className="px-6 py-5 border-b border-neutral-100 bg-linear-to-r from-primary/5 to-transparent">
               <h1 className="text-2xl font-bold text-neutral-800">
-                {serviceData.name}
+                {serviceData?.name || "Carregando serviço"}
               </h1>
             </div>
 
             <div className="px-6 py-6">
-              {detailedInfo ? (
+              {loading ? (
+                <div className="py-12 text-center text-neutral-500">
+                  <Loader2 size={24} className="animate-spin mx-auto mb-3 text-[#1748ae]" />
+                  <p>Carregando detalhes do serviço...</p>
+                </div>
+              ) : parsedDetailedInfo ? (
                 <div className="space-y-6">
-                  {/* O que é */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-primary">
-                      <Info size={20} />
-                      <h2 className="font-bold text-lg">O que é:</h2>
-                    </div>
-                    <p className="text-neutral-700 leading-relaxed pl-7">
-                      {detailedInfo.oQueE}
-                    </p>
-                  </div>
+                  <InfoSection icon={<Info size={20} />} title="O que é:" value={parsedDetailedInfo.oQueE} />
+                  <InfoSection icon={<BookOpen size={20} />} title="Para que serve:" value={parsedDetailedInfo.paraQueServe} />
+                  <InfoSection icon={<Users size={20} />} title="Quem pode solicitar:" value={parsedDetailedInfo.quemPodeSolicitar} />
 
-                  {/* Para que serve */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-primary">
-                      <BookOpen size={20} />
-                      <h2 className="font-bold text-lg">Para que serve:</h2>
-                    </div>
-                    <p className="text-neutral-700 leading-relaxed pl-7">
-                      {detailedInfo.paraQueServe}
-                    </p>
-                  </div>
-
-                  {/* Quem pode solicitar */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-primary">
-                      <Users size={20} />
-                      <h2 className="font-bold text-lg">Quem pode solicitar:</h2>
-                    </div>
-                    <p className="text-neutral-700 leading-relaxed pl-7">
-                      {detailedInfo.quemPodeSolicitar}
-                    </p>
-                  </div>
-
-                  {/* Informações complementares */}
-                  {detailedInfo.informacoesComplementares && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-primary">
-                        <Info size={20} />
-                        <h2 className="font-bold text-lg">Informações complementares:</h2>
-                      </div>
-                      <p className="text-neutral-700 leading-relaxed pl-7">
-                        {detailedInfo.informacoesComplementares}
-                      </p>
-                    </div>
+                  {parsedDetailedInfo.informacoesComplementares && (
+                    <InfoSection
+                      icon={<Info size={20} />}
+                      title="Informações complementares:"
+                      value={parsedDetailedInfo.informacoesComplementares}
+                    />
                   )}
 
-                  {/* Informações necessárias */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-primary">
-                      <FileText size={20} />
-                      <h2 className="font-bold text-lg">Informações necessárias:</h2>
-                    </div>
-                    <ul className="list-disc list-inside space-y-1 text-neutral-700 pl-7">
-                      {detailedInfo.informacoesNecessarias?.map((info, index) => (
-                        <li key={index}>{info}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  <ListSection
+                    icon={<FileText size={20} />}
+                    title="Informações necessárias:"
+                    items={parsedDetailedInfo.informacoesNecessarias}
+                  />
 
-                  {/* Tempo para atendimento */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-primary">
-                      <Clock size={20} />
-                      <h2 className="font-bold text-lg">Tempo para atendimento:</h2>
-                    </div>
-                    <p className="text-neutral-700 leading-relaxed pl-7 font-medium">
-                      {detailedInfo.tempoAtendimento}
-                    </p>
-                  </div>
+                  <InfoSection
+                    icon={<Clock size={20} />}
+                    title="Tempo para atendimento:"
+                    value={parsedDetailedInfo.tempoAtendimento}
+                    emphasis
+                  />
 
-                  {/* Legislação relacionada */}
-                  {detailedInfo.legislacao && detailedInfo.legislacao.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-primary">
-                        <Scale size={20} />
-                        <h2 className="font-bold text-lg">Legislação relacionada:</h2>
-                      </div>
-                      <ul className="list-disc list-inside space-y-1 text-neutral-700 pl-7">
-                        {detailedInfo.legislacao.map((lei, index) => (
-                          <li key={index}>{lei}</li>
-                        ))}
-                      </ul>
-                    </div>
+                  {parsedDetailedInfo.legislacao && parsedDetailedInfo.legislacao.length > 0 && (
+                    <ListSection
+                      icon={<Scale size={20} />}
+                      title="Legislação relacionada:"
+                      items={parsedDetailedInfo.legislacao}
+                    />
                   )}
                 </div>
               ) : (
-                /* Fallback para serviços sem informações detalhadas */
                 <div className="space-y-4 mb-8">
-                  <h2 className="font-semibold text-lg text-neutral-800">
-                    Informações sobre este serviço
-                  </h2>
+                  <h2 className="font-semibold text-lg text-neutral-800">Informações sobre este serviço</h2>
                   <div className="prose prose-sm max-w-none text-neutral-600">
-                    <p>{serviceData.description}</p>
+                    <p>{serviceData?.description}</p>
                   </div>
                 </div>
               )}
 
-              {/* Slogan antes dos botões */}
               <p className="mt-6 mb-2 text-base font-semibold text-primary bg-primary/5 border border-primary/10 rounded-md px-4 py-3">
                 Para mais informações e atendimento digital, utilize nossos canais oficiais abaixo.
               </p>
 
-              {/* Botões de ação */}
               <div className="flex flex-col sm:flex-row gap-4 mt-4 pt-6 border-t border-neutral-100">
                 <Link
                   href="/phiz"
@@ -217,6 +166,58 @@ export default async function ServicePage({ params }: PageProps) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function InfoSection({
+  icon,
+  title,
+  value,
+  emphasis = false,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value?: string;
+  emphasis?: boolean;
+}) {
+  if (!value) return null;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 text-primary">
+        {icon}
+        <h2 className="font-bold text-lg">{title}</h2>
+      </div>
+      <p className={`text-neutral-700 leading-relaxed pl-7 ${emphasis ? "font-medium" : ""}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function ListSection({
+  icon,
+  title,
+  items,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  items?: string[];
+}) {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 text-primary">
+        {icon}
+        <h2 className="font-bold text-lg">{title}</h2>
+      </div>
+      <ul className="list-disc list-inside space-y-1 text-neutral-700 pl-7">
+        {items.map((item, index) => (
+          <li key={index}>{item}</li>
+        ))}
+      </ul>
     </div>
   );
 }

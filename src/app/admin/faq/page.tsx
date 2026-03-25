@@ -2,15 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { HelpCircle, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
-
-interface FAQItem {
-  id: string;
-  question: string;
-  answer: string;
-  categoryId: string;
-  order: number;
-  isActive: boolean;
-}
+import { apiGet, ApiEnvelope } from "@/lib/api";
+import type { FAQItem } from "@/types";
 
 export default function FAQAdminPage() {
   const [faqs, setFaqs] = useState<FAQItem[]>([]);
@@ -20,9 +13,7 @@ export default function FAQAdminPage() {
   const fetchFaqs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/v1/admin/faq");
-      if (res.status === 403) { window.location.href = "/auth?redirect=/admin/faq"; return; }
-      const json = await res.json();
+      const json = await apiGet<ApiEnvelope<FAQItem[]>>("/api/v1/public/faqs", { auth: true });
       if (json.success) setFaqs(json.data || []);
     } catch (e) { console.error("Erro:", e); }
     finally { setLoading(false); }

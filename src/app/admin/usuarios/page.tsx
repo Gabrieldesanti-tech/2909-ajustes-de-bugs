@@ -2,18 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Search, RefreshCw, Shield, UserCheck, UserX } from "lucide-react";
-
-interface UserItem {
-  id: string;
-  name: string;
-  email: string;
-  cpf: string;
-  phone: string | null;
-  role: string;
-  isActive: boolean;
-  createdAt: string;
-  _count?: { requests: number };
-}
+import { apiGet, ApiEnvelope } from "@/lib/api";
+import type { AdminUser, ApiPaginatedData } from "@/types";
 
 const ROLE_LABELS: Record<string, string> = {
   CITIZEN: "Cidadão",
@@ -32,7 +22,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export default function UsuariosPage() {
-  const [users, setUsers] = useState<UserItem[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
@@ -43,10 +33,11 @@ export default function UsuariosPage() {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (roleFilter) params.set("role", roleFilter);
-      const res = await fetch(`/api/v1/admin/users?${params}`);
-      if (res.status === 403) { window.location.href = "/auth?redirect=/admin/usuarios"; return; }
-      const json = await res.json();
-      if (json.success) setUsers(json.data || []);
+      const json = await apiGet<ApiEnvelope<ApiPaginatedData<AdminUser>>>(
+        `/api/v1/admin/users?${params.toString()}`,
+        { auth: true }
+      );
+      if (json.success) setUsers(json.data?.data || []);
     } catch (e) { console.error("Erro:", e); }
     finally { setLoading(false); }
   }, [search, roleFilter]);
@@ -130,7 +121,9 @@ export default function UsuariosPage() {
                         <span className="inline-flex items-center gap-1 text-red-600 text-xs"><UserX size={14} />Inativo</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-gray-600 text-xs">{new Date(user.createdAt).toLocaleDateString("pt-BR")}</td>
+                    <td className="py-3 px-4 text-gray-600 text-xs">
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString("pt-BR") : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

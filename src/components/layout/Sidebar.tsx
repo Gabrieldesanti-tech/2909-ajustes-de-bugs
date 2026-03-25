@@ -3,18 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { serviceCategories } from "@/data/services";
 import { Menu, Star, Loader2 } from "lucide-react";
 import { getCategoryIcon } from "@/lib/icons";
-
-interface CategoryFromApi {
-  id: string;
-  name: string;
-  slug: string;
-  icon: string;
-  description?: string | null;
-  services: { id: string; name: string; slug: string }[];
-}
+import { apiGet } from "@/lib/api";
+import type { ApiEnvelope, CatalogCategorySummary } from "@/types";
 
 interface SidebarProps {
   activeCategory?: string;
@@ -23,20 +15,21 @@ interface SidebarProps {
 export default function Sidebar({ activeCategory }: SidebarProps) {
   const [showAll, setShowAll] = useState(true);
   const pathname = usePathname();
-  const [categories, setCategories] = useState<CategoryFromApi[] | null>(null);
+  const [categories, setCategories] = useState<CatalogCategorySummary[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/v1/services")
-      .then((res) => res.ok ? res.json() : null)
+    apiGet<ApiEnvelope<CatalogCategorySummary[]>>("/api/v1/catalog/categories")
       .then((json) => {
-        if (json?.success && Array.isArray(json.data)) setCategories(json.data);
+        setCategories(json.data || []);
       })
-      .catch(() => {})
+      .catch(() => {
+        setCategories([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  const list = categories ?? serviceCategories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, icon: c.icon, description: c.description ?? null, services: c.services.map((s) => ({ id: s.id, name: s.name, slug: s.slug })) }));
+  const list = categories ?? [];
 
   const mostRequested = [
     { name: "Buraco na Rua", slug: "conservacao/buraco-rua", icon: "Wrench" },
@@ -86,9 +79,13 @@ export default function Sidebar({ activeCategory }: SidebarProps) {
                 <li className="flex items-center justify-center py-8 text-[#1748ae]">
                   <Loader2 size={24} className="animate-spin" aria-hidden />
                 </li>
+              ) : list.length === 0 ? (
+                <li className="px-4 py-6 text-sm text-gray-500 text-center">
+                  Nenhuma categoria disponível.
+                </li>
               ) : (
                 list.map((category) => {
-                  const Icon = getCategoryIcon(category.icon);
+                  const Icon = getCategoryIcon(category.icon || "FolderOpen");
                   const isActive = pathname === `/servicos/${category.slug}` || activeCategory === category.slug;
 
                   return (

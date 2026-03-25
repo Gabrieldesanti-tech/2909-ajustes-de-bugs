@@ -3,27 +3,18 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Building2, Mail, RefreshCw, Search, FolderOpen, ChevronRight } from "lucide-react";
-
-interface Secretaria {
-  id: string;
-  name: string;
-  slug: string;
-  email: string | null;
-  isActive: boolean;
-  _count: { requests: number; categories: number };
-}
+import { apiGet, ApiEnvelope } from "@/lib/api";
+import type { DepartmentSummary } from "@/types";
 
 export default function SecretariasPage() {
-  const [secretarias, setSecretarias] = useState<Secretaria[]>([]);
+  const [secretarias, setSecretarias] = useState<DepartmentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
   const fetchSecretarias = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/v1/admin/secretarias");
-      if (res.status === 403) { window.location.href = "/auth?redirect=/admin/secretarias"; return; }
-      const json = await res.json();
+      const json = await apiGet<ApiEnvelope<DepartmentSummary[]>>("/api/v1/admin/departments", { auth: true });
       if (json.success) setSecretarias(json.data || []);
     } catch (e) { console.error("Erro:", e); }
     finally { setLoading(false); }

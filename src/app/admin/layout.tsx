@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import "../globals.css";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminHeader from "@/components/admin/AdminHeader";
+import AdminGuard from "@/components/admin/AdminGuard";
 
 export const metadata: Metadata = {
   title: {
@@ -26,21 +27,22 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
-      <body className="min-h-screen bg-gray-50" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
-        <div className="flex h-screen overflow-hidden">
-          {/* Sidebar */}
-          <AdminSidebar />
+    <AdminGuard>
+      <div
+        className="flex h-screen overflow-hidden bg-gray-50"
+        style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
+      >
+        {/* Sidebar */}
+        <AdminSidebar />
 
-          {/* Área principal */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <AdminHeader />
-            <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
-              {children}
-            </main>
-          </div>
+        {/* Área principal */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <AdminHeader />
+          <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
+            {children}
+          </main>
         </div>
-      </body>
-    </html>
+      </div>
+    </AdminGuard>
   );
 }

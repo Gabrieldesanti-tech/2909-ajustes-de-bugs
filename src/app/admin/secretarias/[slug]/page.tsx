@@ -19,43 +19,8 @@ import {
   ChevronRight,
   FileText,
 } from "lucide-react";
-
-interface SecretariaDetail {
-  id: string;
-  name: string;
-  slug: string;
-  email: string | null;
-  phone: string | null;
-  isActive: boolean;
-  categories: {
-    id: string;
-    name: string;
-    slug: string;
-    services: { id: string; name: string; slug: string }[];
-  }[];
-  _count: { requests: number; categories: number };
-  stats: {
-    total: number;
-    byStatus: Record<string, number>;
-  };
-}
-
-interface RequestItem {
-  id: string;
-  protocol: string;
-  status: string;
-  origin: string;
-  description: string;
-  createdAt: string;
-  slaBreached: boolean;
-  slaDeadline: string;
-  service: { name: string; category: { name: string } };
-  address: { neighborhood: string } | null;
-  user: { name: string; email: string } | null;
-  assignee: { name: string } | null;
-  department: { name: string } | null;
-  _count: { attachments: number; comments: number };
-}
+import { apiGet, ApiEnvelope } from "@/lib/api";
+import type { AdminRequestListItem, ApiPaginatedData, DepartmentDetail } from "@/types";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Todos os status" },
@@ -101,8 +66,8 @@ export default function SecretariaDetailPage() {
   const params = useParams();
   const slug = params.slug as string;
 
-  const [secretaria, setSecretaria] = useState<SecretariaDetail | null>(null);
-  const [requests, setRequests] = useState<RequestItem[]>([]);
+  const [secretaria, setSecretaria] = useState<DepartmentDetail | null>(null);
+  const [requests, setRequests] = useState<AdminRequestListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingReqs, setLoadingReqs] = useState(true);
   const [total, setTotal] = useState(0);
@@ -117,12 +82,12 @@ export default function SecretariaDetailPage() {
   const fetchSecretaria = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/admin/secretarias/${slug}`);
-      if (res.status === 403) { window.location.href = "/auth?redirect=/admin/secretarias"; return; }
-      if (res.status === 404) { setSecretaria(null); setLoading(false); return; }
-      const json = await res.json();
-      if (json.success) setSecretaria(json.data);
-    } catch (e) { console.error("Erro:", e); }
+      const json = await apiGet<ApiEnvelope<DepartmentDetail>>(`/api/v1/admin/departments/${slug}`, { auth: true });
+      if (json.success) setSecretaria(json.data ?? null);
+    } catch (e) {
+      console.error("Erro:", e);
+      setSecretaria(null);
+    }
     finally { setLoading(false); }
   }, [slug]);
 
@@ -138,13 +103,14 @@ export default function SecretariaDetailPage() {
       p.set("page", page.toString());
       p.set("limit", limit.toString());
 
-      const res = await fetch(`/api/v1/requests?${p}`);
-      if (res.status === 403) { window.location.href = "/auth?redirect=/admin/secretarias"; return; }
-      const json = await res.json();
+      const json = await apiGet<ApiEnvelope<ApiPaginatedData<AdminRequestListItem>>>(
+        `/api/v1/admin/requests?${p.toString()}`,
+        { auth: true }
+      );
       if (json.success) {
-        setRequests(json.data || []);
-        setTotal(json.total || 0);
-        setTotalPages(json.totalPages || 0);
+        setRequests(json.data?.data || []);
+        setTotal(json.data?.total || 0);
+        setTotalPages(json.data?.totalPages || 0);
       }
     } catch (e) { console.error("Erro:", e); }
     finally { setLoadingReqs(false); }
@@ -224,13 +190,13 @@ export default function SecretariaDetailPage() {
       </div>
 
       {/* Categorias vinculadas */}
-      {secretaria.categories.length > 0 && (
+      {(secretaria.categories?.length || 0) > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
             <FolderOpen size={16} className="text-gray-400" />Categorias de serviço vinculadas
           </h2>
           <div className="flex flex-wrap gap-2">
-            {secretaria.categories.map(cat => (
+            {secretaria.categories?.map(cat => (
               <span key={cat.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 text-gray-700 rounded-lg text-xs font-medium">
                 {cat.name}
                 <span className="text-gray-400">({cat.services.length})</span>
@@ -293,8 +259,12 @@ export default function SecretariaDetailPage() {
                       <span className="font-mono font-medium text-blue-600">{req.protocol}</span>
                     </td>
                     <td className="py-3 px-4">
-                      <p className="font-medium text-gray-800 truncate max-w-48">{req.service.name}</p>
-                      <p className="text-xs text-gray-500">{req.service.category.name}</p>
+                      <p className="font-medium text-gray-800 truncate max-w-48">
+                        {req.service?.name || req.serviceId || "Serviço não informado"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {req.service?.category?.name || "Categoria não informada"}
+                      </p>
                     </td>
                     <td className="py-3 px-4">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[req.status] || "bg-gray-100"}`}>

@@ -3,16 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, RefreshCw, AlertTriangle, MessageSquare, Clock, Info, ExternalLink, CheckCheck, Check } from "lucide-react";
-
-interface NotificationItem {
-  id: string;
-  type: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt: string;
-  link: string | null;
-}
+import { apiGet, apiPatch, apiPost, ApiEnvelope } from "@/lib/api";
+import type { NotificationItem } from "@/types";
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   STATUS_UPDATE: <Clock size={16} className="text-blue-500" />,
@@ -47,9 +39,7 @@ export default function NotificacoesPage() {
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/v1/admin/notificacoes");
-      if (res.status === 403) { window.location.href = "/auth?redirect=/admin/notificacoes"; return; }
-      const json = await res.json();
+      const json = await apiGet<ApiEnvelope<NotificationItem[]>>("/api/v1/admin/notifications", { auth: true });
       if (json.success) setNotifications(json.data || []);
     } catch (e) { console.error("Erro:", e); }
     finally { setLoading(false); }
@@ -62,11 +52,7 @@ export default function NotificacoesPage() {
     if (!n.isRead) {
       // Marcar como lida no backend
       try {
-        await fetch("/api/v1/admin/notificacoes", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: n.id }),
-        });
+        await apiPatch(`/api/v1/admin/notifications/${encodeURIComponent(n.id)}/read`, undefined, { auth: true });
       } catch (e) { console.error("Erro ao marcar como lida:", e); }
 
       // Atualizar estado local imediatamente
@@ -76,22 +62,21 @@ export default function NotificacoesPage() {
     }
 
     // Navegar se tiver link
-    if (n.link) {
-      router.push(n.link);
+    const link =
+      n.data && typeof n.data.link === "string"
+        ? n.data.link
+        : null;
+
+    if (link) {
+      router.push(link);
     }
   };
 
   // Marcar todas como lidas
   const handleMarkAllRead = async () => {
     try {
-      const res = await fetch("/api/v1/admin/notificacoes", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ markAll: true }),
-      });
-      if (res.ok) {
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      }
+      await apiPost("/api/v1/admin/notifications/read-all", undefined, { auth: true });
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (e) { console.error("Erro:", e); }
   };
 
@@ -197,8 +182,8 @@ export default function NotificacoesPage() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-xs text-gray-400 whitespace-nowrap">{formatDate(n.createdAt)}</span>
-                  {n.link && <ExternalLink size={14} className="text-gray-300" />}
-                  {!n.isRead && !n.link && (
+                  {(n.data && typeof n.data.link === "string") && <ExternalLink size={14} className="text-gray-300" />}
+                  {!n.isRead && !(n.data && typeof n.data.link === "string") && (
                     <span title="Marcar como lida"><Check size={14} className="text-gray-300 hover:text-blue-500" /></span>
                   )}
                 </div>

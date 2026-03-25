@@ -1,0 +1,10 @@
+.git
+.gitignore
+.idea
+.next
+2909-main
+node_modules
+npm-debug.log
+README.md
+docs
+prisma

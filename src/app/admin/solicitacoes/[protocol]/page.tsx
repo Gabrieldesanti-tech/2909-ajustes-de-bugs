@@ -15,6 +15,7 @@ import {
   MessageSquare,
   History,
 } from "lucide-react";
+import { apiGet, apiPatch, apiPost, ApiEnvelope } from "@/lib/api";
 
 // =============================================================================
 // Página de Detalhe da Solicitação (Admin)
@@ -127,10 +128,12 @@ export default function SolicitacaoDetailPage({
 
   const fetchRequest = async () => {
     try {
-      const res = await fetch(`/api/v1/requests/${resolvedParams.protocol}`);
-      const json = await res.json();
+      const json = await apiGet<ApiEnvelope<RequestDetail>>(
+        `/api/v1/requests/${resolvedParams.protocol}`,
+        { auth: true }
+      );
       if (json.success) {
-        setRequest(json.data);
+        setRequest(json.data ?? null);
         setNewStatus("");
       } else {
         setError(json.error || "Solicitação não encontrada");
@@ -149,16 +152,15 @@ export default function SolicitacaoDetailPage({
     setSubmittingStatus(true);
     setStatusError("");
     try {
-      const res = await fetch(`/api/v1/requests/${resolvedParams.protocol}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const json = await apiPatch<ApiEnvelope<null>>(
+        `/api/v1/admin/requests/${resolvedParams.protocol}/status`,
+        {
           status: newStatus,
           message: statusMessage.trim(),
           isPublic: isPublicHistory,
-        }),
-      });
-      const json = await res.json();
+        },
+        { auth: true }
+      );
       if (json.success) {
         setStatusMessage("");
         setNewStatus("");
@@ -180,15 +182,14 @@ export default function SolicitacaoDetailPage({
 
     setSubmittingComment(true);
     try {
-      const res = await fetch(`/api/v1/requests/${resolvedParams.protocol}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const json = await apiPost<ApiEnvelope<null>>(
+        `/api/v1/requests/${resolvedParams.protocol}/comments`,
+        {
           content: commentText.trim(),
           isInternal: isInternalComment,
-        }),
-      });
-      const json = await res.json();
+        },
+        { auth: true }
+      );
       if (json.success) {
         setCommentText("");
         fetchRequest();

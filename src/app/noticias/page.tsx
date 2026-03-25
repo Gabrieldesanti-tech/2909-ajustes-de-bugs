@@ -2,19 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Newspaper, Calendar, Tag, ArrowRight, RefreshCw, Search } from "lucide-react";
-
-interface NewsItem {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: string;
-  image: string | null;
-  category: string;
-  author: string;
-  publishedAt: string;
-}
+import { Newspaper, Calendar, ArrowRight, RefreshCw, Search } from "lucide-react";
+import type { ApiEnvelope, NewsItem } from "@/types";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   "Educação": { bg: "bg-blue-100", text: "text-blue-700" },
@@ -38,8 +27,8 @@ export default function NoticiasPage() {
   const fetchNews = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/v1/public/news");
-      const json = await res.json();
+      const res = await fetch("/api/v1/public/news", { cache: "no-store" });
+      const json = (await res.json()) as ApiEnvelope<NewsItem[]>;
       if (json.success) setNews(json.data || []);
     } catch (e) { console.error("Erro:", e); }
     finally { setLoading(false); }

@@ -11,7 +11,8 @@ import {
   Timer,
   BarChart3,
 } from "lucide-react";
-import type { DashboardStats, RequestsByStatusChart } from "@/types";
+import type { DashboardData, DashboardStats } from "@/types";
+import { apiGet, ApiEnvelope, unwrapData } from "@/lib/api";
 
 // =============================================================================
 // Dashboard Administrativo Principal
@@ -23,16 +24,6 @@ import type { DashboardStats, RequestsByStatusChart } from "@/types";
 // - Acesso rápido a ações comuns
 // =============================================================================
 
-interface DashboardData {
-  stats: DashboardStats;
-  charts: {
-    byStatus: RequestsByStatusChart[];
-    byPeriod: { date: string; count: number }[];
-    byCategory: { category: string; service: string; count: number }[];
-    byNeighborhood: { neighborhood: string; count: number }[];
-  };
-}
-
 export default function AdminDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,15 +34,8 @@ export default function AdminDashboardPage() {
 
   const fetchDashboard = async () => {
     try {
-      const res = await fetch("/api/v1/admin/dashboard");
-      if (res.status === 403 || res.status === 401) {
-        window.location.href = "/auth?redirect=/admin";
-        return;
-      }
-      const json = await res.json();
-      if (json.success) {
-        setData(json.data);
-      }
+      const json = await apiGet<ApiEnvelope<DashboardData>>("/api/v1/admin/dashboard", { auth: true });
+      setData(unwrapData(json));
     } catch (error) {
       console.error("Erro ao carregar dashboard:", error);
     } finally {
@@ -88,6 +72,9 @@ export default function AdminDashboardPage() {
     todayRequests: 0,
     weekRequests: 0,
     monthRequests: 0,
+    totalUsers: 0,
+    totalServices: 0,
+    totalDepartments: 0,
   };
 
   const charts = data?.charts;
@@ -189,14 +176,14 @@ export default function AdminDashboardPage() {
                 return (
                   <div key={item.status} className="flex items-center gap-3">
                     <div className="w-32 text-sm text-gray-600 truncate">
-                      {item.statusLabel}
+                      {item.statusLabel || item.status}
                     </div>
                     <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500 flex items-center px-2"
                         style={{
                           width: `${Math.max(pct, 2)}%`,
-                          backgroundColor: item.color,
+                          backgroundColor: item.color || "#3b82f6",
                         }}
                       >
                         <span className="text-xs text-white font-medium">
@@ -227,9 +214,9 @@ export default function AdminDashboardPage() {
                 <div key={index} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                   <div>
                     <p className="text-sm font-medium text-gray-800">
-                      {item.service}
+                      {item.service || "Serviço não informado"}
                     </p>
-                    <p className="text-xs text-gray-500">{item.category}</p>
+                    <p className="text-xs text-gray-500">{item.category || "Categoria não informada"}</p>
                   </div>
                   <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
                     {item.count}
@@ -254,7 +241,7 @@ export default function AdminDashboardPage() {
                 const height = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
                 return (
                   <div
-                    key={item.date}
+                    key={item.period}
                     className="flex-1 group relative"
                   >
                     <div
@@ -263,7 +250,7 @@ export default function AdminDashboardPage() {
                     />
                     {/* Tooltip */}
                     <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                      {new Date(item.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}: {item.count}
+                      {item.period}: {item.count}
                     </div>
                   </div>
                 );

@@ -8,6 +8,7 @@ import {
   Calendar,
   BarChart3,
 } from "lucide-react";
+import { apiGet, ApiEnvelope, getAuthorizationHeaderValue } from "@/lib/api";
 
 // =============================================================================
 // Página de Relatórios (Admin)
@@ -33,7 +34,17 @@ export default function RelatoriosPage() {
       if (dateTo) params.set("dateTo", dateTo);
       if (status) params.set("status", status);
 
-      window.open(`/api/v1/admin/reports/export?${params.toString()}`);
+      const authorization = getAuthorizationHeaderValue();
+      const response = await fetch(`/api/v1/admin/reports/requests/export?${params.toString()}`, {
+        headers: authorization ? { Authorization: authorization } : undefined,
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `relatorio-solicitacoes-${new Date().toISOString().split("T")[0]}.csv`;
+      anchor.click();
+      window.URL.revokeObjectURL(url);
     } finally {
       setExporting(null);
     }
@@ -48,8 +59,10 @@ export default function RelatoriosPage() {
       if (dateTo) params.set("dateTo", dateTo);
       if (status) params.set("status", status);
 
-      const res = await fetch(`/api/v1/admin/reports/export?${params.toString()}`);
-      const json = await res.json();
+      const json = await apiGet<ApiEnvelope<Record<string, unknown>[]>>(
+        `/api/v1/admin/reports/requests/export?${params.toString()}`,
+        { auth: true }
+      );
 
       if (json.success && json.data) {
         // Importação dinâmica da lib xlsx (client-side only)
@@ -92,8 +105,10 @@ export default function RelatoriosPage() {
       if (dateTo) params.set("dateTo", dateTo);
       if (status) params.set("status", status);
 
-      const res = await fetch(`/api/v1/admin/reports/export?${params.toString()}`);
-      const json = await res.json();
+      const json = await apiGet<ApiEnvelope<Record<string, unknown>[]>>(
+        `/api/v1/admin/reports/requests/export?${params.toString()}`,
+        { auth: true }
+      );
 
       if (json.success && json.data) {
         // Importação dinâmica do jspdf (client-side only)
@@ -113,14 +128,14 @@ export default function RelatoriosPage() {
         doc.text(`Total de registros: ${json.data.length}`, 14, 34);
 
         // Tabela
-        const tableData = json.data.map((r: Record<string, unknown>) => [
-          r.protocol,
+        const tableData: string[][] = json.data.map((r: Record<string, unknown>) => [
+          String(r.protocol ?? ""),
           r.createdAt ? new Date(r.createdAt as string).toLocaleDateString("pt-BR") : "",
-          r.status,
-          r.category,
-          r.service,
-          (r.description as string || "").substring(0, 60),
-          r.neighborhood,
+          String(r.status ?? ""),
+          String(r.category ?? ""),
+          String(r.service ?? ""),
+          String(r.description ?? "").substring(0, 60),
+          String(r.neighborhood ?? ""),
           r.slaBreached ? "Sim" : "Não",
         ]);
 

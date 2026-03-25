@@ -1,166 +1,130 @@
-# Integração Phiz - Guia Técnico
+# Integracao Phiz
 
-## Visão Geral
+## Visao Geral
 
-O Portal 2909 integra-se à plataforma Phiz para permitir login via QR code e sincronização de identidade entre o site e o mini-programa Phiz.
+O frontend usa a integracao Phiz apenas como consumidor de API externa.
 
-**Fluxo de integração (conforme Open Platform Integration Guide):**
+O backend responsavel pelo fluxo deve expor os endpoints abaixo:
 
-1. Submeter informações do site (URL, nome, logo) para aprovação pela Phiz
-2. Após aprovação, integrar a API de login por QR code
-3. Receber `userId` no callback quando o usuário escanear o QR
-4. Usar `getPhizUserInfo` no mini-programa para obter dados e enviar ao backend
+- `POST /api/v1/integrations/phiz/qrcode`
+- `GET /api/v1/integrations/phiz/check-scan?token=...`
+- `POST /api/v1/integrations/phiz/login`
+- `POST /api/v1/integrations/phiz/link`
+- `POST /api/v1/integrations/phiz/sync-user`
 
-## APIs Implementadas
+## Fluxo de Login por QR Code
 
-### 1. Gerar QR Code de Login
+1. O frontend solicita um QR code.
+2. O backend responde com a URL do QR e um `scanToken`.
+3. O frontend faz polling do status.
+4. Quando o scan for concluido, o frontend chama o endpoint de login.
+5. O backend devolve um `accessToken` e, idealmente, os dados do usuario.
 
-**Endpoint:** `POST /api/v1/phiz/qrcode`
+## Contratos Esperados
 
-**Descrição:** Chama a API Phiz para gerar um QR code e cria uma sessão local para rastrear o escaneamento.
+### Gerar QR Code
 
-**Resposta:**
+`POST /api/v1/integrations/phiz/qrcode`
+
+Resposta esperada:
+
 ```json
 {
   "success": true,
   "data": {
-    "qrcode_url": "https://...",
-    "scan_token": "uuid",
-    "expire_time": 300
+    "qrcodeUrl": "https://...",
+    "scanToken": "uuid",
+    "expiresIn": 300
   }
 }
 ```
 
-### 2. Callback (Phiz chama quando usuário escaneia)
+### Polling de status
 
-**Endpoint:** `GET|POST /api/v1/phiz/callback?token={scanToken}&userId={phizUserId}`
+`GET /api/v1/integrations/phiz/check-scan?token={scanToken}`
 
-**Descrição:** Recebido automaticamente pela plataforma Phiz. Atualiza a sessão com o `phizUserId`.
+Resposta esperada:
 
-**Suporta:**
-- GET: `?token=xxx&userId=xxx`
-- POST: body `{ "userId": "xxx" }` + `?token=xxx`
-
-### 3. Verificar Escaneamento (Polling)
-
-**Endpoint:** `GET /api/v1/phiz/check-scan?token={scanToken}`
-
-**Descrição:** Polling pelo frontend para saber quando o usuário escaneou.
-
-**Resposta:**
 ```json
 {
   "success": true,
-  "status": "PENDING" | "COMPLETED" | "EXPIRED",
-  "phiz_user_id": "xxx"  // presente quando status === "COMPLETED"
+  "data": {
+    "status": "PENDING"
+  }
 }
 ```
 
-### 4. Login via Phiz
+Ou:
 
-**Endpoint:** `POST /api/v1/phiz/login`
-
-**Body:**
 ```json
-{ "scan_token": "uuid" }
+{
+  "success": true,
+  "data": {
+    "status": "COMPLETED",
+    "phizUserId": "phiz_123"
+  }
+}
 ```
 
-**Descrição:** Após o QR ser escaneado, chama este endpoint para criar sessão. Funciona apenas se existir um `User` com `phizUserId` correspondente (conta vinculada).
+### Login
 
-**Códigos de erro:**
-- `PHIZ_NOT_LINKED`: Conta Phiz não vinculada. Usuário deve cadastrar no portal e vincular.
+`POST /api/v1/integrations/phiz/login`
 
-### 5. Vincular Conta Phiz (usuário autenticado)
+Payload:
 
-**Endpoint:** `POST /api/v1/phiz/link`
-
-**Body:**
 ```json
-{ "scan_token": "uuid" }
+{
+  "scanToken": "uuid"
+}
 ```
 
-**Descrição:** Vincula a conta Phiz ao usuário logado. Requer autenticação.
+Resposta esperada:
 
-### 6. Sync de Usuário (Mini-Programa)
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "jwt",
+    "refreshToken": "jwt-refresh",
+    "user": {
+      "id": "usr_1",
+      "name": "Nome",
+      "email": "mail@exemplo.com",
+      "cpf": "00000000000",
+      "role": "CITIZEN"
+    }
+  }
+}
+```
 
-**Endpoint:** `POST /api/v1/phiz/sync-user`
+### Vinculo de conta
 
-**Body:**
+`POST /api/v1/integrations/phiz/link`
+
+Payload:
+
+```json
+{
+  "scanToken": "uuid"
+}
+```
+
+### Sync de usuario
+
+`POST /api/v1/integrations/phiz/sync-user`
+
+Payload exemplo:
+
 ```json
 {
   "userId": "phiz_user_id",
-  "nickname": "opcional",
-  "avatarUrl": "opcional"
+  "nickname": "apelido",
+  "avatarUrl": "https://..."
 }
 ```
 
-**Descrição:** Chamado pelo mini-programa após `wx.getPhizUserInfo()`. Retorna dados do usuário vinculado ou indica que a conta não está vinculada.
+## Arquivos do frontend ligados ao fluxo
 
-## Banco de Dados
-
-- **User.phizUserId**: Campo opcional para vincular o usuário portal ao Phiz.
-- **PhizLoginSession**: Tabela para sessões de login via QR (scanToken, phizUserId, status, expiresAt).
-
-## Configuração
-
-### API Phiz
-
-Configure a URL da API Phiz quando tiver a URL de produção após o registro:
-
-```env
-PHIZ_QRCODE_API_URL=https://api.phiz.com/...
-```
-
-Sem essa variável, o sistema usa a URL de exemplo do guia de integração (Apifox), que pode não funcionar até o site ser registrado e aprovado pela Phiz.
-
-### Callback URL
-
-A URL de callback é construída automaticamente com base em:
-- `x-forwarded-host` / `host` (headers da requisição)
-- `x-forwarded-proto` / `http` (protocolo)
-- Ou `NEXT_PUBLIC_APP_URL` (fallback para produção)
-
-**Importante:** A URL de callback deve ser acessível publicamente. Em desenvolvimento local, considere usar ngrok ou similar.
-
-### URL Base (Produção)
-
-Defina `NEXT_PUBLIC_APP_URL` no `.env` para produção, por exemplo:
-```
-NEXT_PUBLIC_APP_URL=https://2909.belfordroxo.rj.gov.br
-```
-
-## Fluxo de Login via QR
-
-1. Usuário clica em "Entrar com Phiz (QR Code)"
-2. Frontend chama `POST /api/v1/phiz/qrcode`
-3. Exibe o QR code (`qrcode_url`)
-4. Polling em `GET /api/v1/phiz/check-scan?token=xxx` a cada 2 segundos
-5. Quando Phiz chama o callback, a sessão é atualizada
-6. Frontend detecta `status === "COMPLETED"` no próximo poll
-7. Frontend chama `POST /api/v1/phiz/login` com `scan_token`
-8. Se usuário vinculado → sessão criada e redirect. Se não → mensagem para vincular conta.
-
-## Vincular Conta Phiz
-
-1. Usuário cadastra no portal (CPF, senha, etc.)
-2. Faz login normalmente
-3. Acessa área de "Minha Conta" ou "Vincular Phiz" (a implementar)
-4. Escaneia QR code → callback recebe phizUserId
-5. Chama `POST /api/v1/phiz/link` com scan_token → vincula `User.phizUserId`
-
-## Mini-Programa (WeChat/Phiz)
-
-No mini-programa, após `wx.getPhizUserInfo()`:
-
-```javascript
-const userInfo = await wx.getPhizUserInfo();
-const response = await fetch('https://seu-site.com/api/v1/phiz/sync-user', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    userId: userInfo.userId,
-    nickname: userInfo.nickname,
-    avatarUrl: userInfo.avatarUrl
-  })
-});
-```
+- [src/components/auth/PhizLogin.tsx](/Users/kauehmoreno/devops/rkj/2909-ajustes-de-bugs/src/components/auth/PhizLogin.tsx)
+- [src/app/phiz/page.tsx](/Users/kauehmoreno/devops/rkj/2909-ajustes-de-bugs/src/app/phiz/page.tsx)
+- [src/app/Baixe(ouvidoria)/page.tsx](/Users/kauehmoreno/devops/rkj/2909-ajustes-de-bugs/src/app/Baixe(ouvidoria)/page.tsx)
