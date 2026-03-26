@@ -6,7 +6,7 @@ import { Eye, EyeOff, User, Mail, Phone, Lock, ArrowRight } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import PhizLogin from "@/components/auth/PhizLogin";
-import { loginCitizen, registerCitizen } from "@/lib/api";
+import { getRegisterErrorMessage, loginCitizen, registerCitizen } from "@/lib/api";
 import { formatCPF, formatPhone, validateCPF, validateEmail } from "@/lib/utils";
 
 type AuthMode = "login" | "register";
@@ -139,7 +139,7 @@ export default function AuthPage() {
       redirectAfterAuth(user?.role);
     } catch (error) {
       setErrors({
-        form: error instanceof Error ? error.message : "Erro ao cadastrar",
+        form: getRegisterErrorMessage(error),
       });
     } finally {
       setIsLoading(false);

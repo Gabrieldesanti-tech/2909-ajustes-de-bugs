@@ -22,6 +22,23 @@ export class ApiError extends Error {
   }
 }
 
+const EXISTING_USER_ERROR_PATTERNS = [
+  "already exists",
+  "already registered",
+  "conflict",
+  "duplicate",
+  "duplicado",
+  "duplicata",
+  "ja existe",
+  "já existe",
+  "ja cadastrado",
+  "já cadastrado",
+  "ja cadastrada",
+  "já cadastrada",
+  "cpf existente",
+  "email existente",
+] as const;
+
 function isBrowser() {
   return typeof window !== "undefined";
 }
@@ -100,6 +117,20 @@ function extractApiMessage(payload: unknown): string | undefined {
     (source.data && typeof source.data === "object"
       ? extractMessageValue((source.data as Record<string, unknown>).message)
       : undefined)
+  );
+}
+
+function normalizeComparableText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function looksLikeExistingUserMessage(value: string) {
+  const normalized = normalizeComparableText(value);
+  return EXISTING_USER_ERROR_PATTERNS.some((pattern) =>
+    normalized.includes(normalizeComparableText(pattern))
   );
 }
 
@@ -351,6 +382,11 @@ export async function logout() {
 }
 
 export async function fetchCurrentUser() {
+  const token = getAccessToken();
+  if (!token) {
+    return null;
+  }
+
   const payload = await apiGet<ApiEnvelope<AuthMeData>>("/api/v1/auth/me", { auth: true });
   const data = unwrapData(payload);
   const session = getStoredSession();
@@ -363,4 +399,26 @@ export async function fetchCurrentUser() {
   }
 
   return data?.user ?? null;
+}
+
+export function getRegisterErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    const apiMessage = extractApiMessage(error.payload);
+
+    if (
+      error.status === 409 ||
+      looksLikeExistingUserMessage(error.message) ||
+      (apiMessage ? looksLikeExistingUserMessage(apiMessage) : false)
+    ) {
+      return "Já temos esse usuário em nossa base. Faça login ou recupere sua senha.";
+    }
+
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Erro ao cadastrar";
 }

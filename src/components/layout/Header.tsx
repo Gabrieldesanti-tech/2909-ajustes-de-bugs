@@ -13,7 +13,7 @@ import {
   LogOut,
   Shield
 } from "lucide-react";
-import { fetchCurrentUser, getStoredSession, logout } from "@/lib/api";
+import { fetchCurrentUser, getAccessToken, getStoredSession, logout } from "@/lib/api";
 import type { AuthUser } from "@/types";
 import { FontSize, ContrastMode } from "@/types";
 
@@ -82,6 +82,13 @@ export default function Header() {
       const storedUser = getStoredSession()?.user ?? null;
       if (isMounted) {
         setCurrentUser(storedUser);
+      }
+
+      if (!getAccessToken()) {
+        if (isMounted) {
+          setIsAuthLoading(false);
+        }
+        return;
       }
 
       try {
