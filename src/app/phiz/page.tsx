@@ -67,31 +67,48 @@ export default function PhizPage() {
                 Instalar Agora!
               </h2>
               <p className="text-sm text-neutral-600">
-                Baixe o app para instalar e começar a usar.
+                Tente abrir o app primeiro. Se ele não estiver instalado, a loja correta será aberta em seguida.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <a
-                  href={PHIZ_STORE_URLS.android}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openPhizDeepLink({ platform: "android" })}
                   className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-colors w-full sm:w-auto"
                 >
                   <Smartphone size={18} aria-hidden="true" />
                   Android
                   <ExternalLink size={18} aria-hidden="true" />
-                </a>
+                </button>
 
-                <a
-                  href={PHIZ_STORE_URLS.ios}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openPhizDeepLink({ platform: "ios" })}
                   className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-[#1748ae] hover:bg-[#123b8f] text-white font-semibold transition-colors w-full sm:w-auto"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/apple-icon.png" alt="" width={18} height={18} aria-hidden="true" />
                   iOS
                   <ExternalLink size={18} aria-hidden="true" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2 text-sm text-neutral-500 sm:flex-row sm:items-center sm:gap-4">
+                <a
+                  href={PHIZ_STORE_URLS.android}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-neutral-700 hover:underline"
+                >
+                  Ir direto para a Play Store
+                </a>
+                <a
+                  href={PHIZ_STORE_URLS.ios}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-neutral-700 hover:underline"
+                >
+                  Ir direto para a App Store
                 </a>
               </div>
             </div>
