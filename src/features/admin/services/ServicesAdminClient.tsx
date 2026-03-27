@@ -14,6 +14,7 @@ import {
   AlertCircle,
   ArrowDown,
   ArrowUp,
+  Building2,
   Clock3,
   Pencil,
   Plus,
@@ -87,6 +88,15 @@ type CategoryFormState = {
   departmentId: string;
 };
 
+type DepartmentFormState = {
+  id?: string;
+  name: string;
+  slug: string;
+  description: string;
+  phone: string;
+  isActive: boolean;
+};
+
 type ServiceFormState = {
   id?: string;
   name: string;
@@ -117,6 +127,16 @@ function createEmptyCategoryForm(): CategoryFormState {
     description: "",
     order: "",
     departmentId: "",
+  };
+}
+
+function createEmptyDepartmentForm(): DepartmentFormState {
+  return {
+    name: "",
+    slug: "",
+    description: "",
+    phone: "",
+    isActive: true,
   };
 }
 
@@ -283,6 +303,34 @@ function buildCategoryPayload(form: CategoryFormState) {
   };
 }
 
+function buildDepartmentPayload(form: DepartmentFormState) {
+  const name = form.name.trim();
+  const slug = form.slug.trim();
+  const description = form.description.trim();
+
+  if (!name) {
+    return { error: "Informe o nome da secretaria." };
+  }
+
+  if (!slug) {
+    return { error: "Informe o identificador da secretaria." };
+  }
+
+  if (!description) {
+    return { error: "Informe uma descrição para a secretaria." };
+  }
+
+  return {
+    value: {
+      name,
+      slug,
+      description,
+      phone: form.phone.trim() || undefined,
+      isActive: form.isActive,
+    },
+  };
+}
+
 function buildDetailedInfoPayload(form: ServiceFormState): DetailedServiceInfo | undefined {
   const payload: DetailedServiceInfo = {
     oQueE: form.oQueE.trim() || undefined,
@@ -368,10 +416,14 @@ export default function ServicesAdminClient() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [editorTab, setEditorTab] = useState<"department" | "category" | "service">("department");
+  const [departmentMode, setDepartmentMode] = useState<"create" | "edit">("create");
   const [categoryMode, setCategoryMode] = useState<"create" | "edit">("create");
   const [serviceMode, setServiceMode] = useState<"create" | "edit">("create");
+  const [departmentForm, setDepartmentForm] = useState<DepartmentFormState>(createEmptyDepartmentForm());
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(createEmptyCategoryForm());
   const [serviceForm, setServiceForm] = useState<ServiceFormState>(createEmptyServiceForm());
+  const [departmentSubmitting, setDepartmentSubmitting] = useState(false);
   const [categorySubmitting, setCategorySubmitting] = useState(false);
   const [serviceSubmitting, setServiceSubmitting] = useState(false);
   const [busyCategoryId, setBusyCategoryId] = useState<string | null>(null);
@@ -438,6 +490,18 @@ export default function ServicesAdminClient() {
 
   const normalizedSearch = deferredSearch.trim().toLowerCase();
 
+  const filteredDepartments = departments.filter((department) => {
+    if (!normalizedSearch) return true;
+
+    return [
+      department.name,
+      department.slug,
+      department.description || "",
+      department.email || "",
+      department.phone || "",
+    ].some((value) => value.toLowerCase().includes(normalizedSearch));
+  });
+
   const filteredCategories = categories.filter((category) => {
     if (!normalizedSearch) return true;
 
@@ -464,17 +528,40 @@ export default function ServicesAdminClient() {
   });
 
   function resetCategoryForm() {
+    setEditorTab("category");
     setCategoryMode("create");
     setCategoryForm(createEmptyCategoryForm());
   }
 
   function resetServiceForm() {
+    setEditorTab("service");
     setServiceMode("create");
     setServiceForm(createEmptyServiceForm(categories[0]?.id || ""));
   }
 
+  function resetDepartmentForm() {
+    setEditorTab("department");
+    setDepartmentMode("create");
+    setDepartmentForm(createEmptyDepartmentForm());
+  }
+
+  function handleEditDepartment(department: DepartmentSummary) {
+    setFeedback(null);
+    setEditorTab("department");
+    setDepartmentMode("edit");
+    setDepartmentForm({
+      id: department.id,
+      name: department.name,
+      slug: department.slug,
+      description: department.description || "",
+      phone: department.phone || "",
+      isActive: department.isActive,
+    });
+  }
+
   function handleEditCategory(category: AdminCategoryItem) {
     setFeedback(null);
+    setEditorTab("category");
     setCategoryMode("edit");
     setCategoryForm({
       id: category.id,
@@ -489,6 +576,7 @@ export default function ServicesAdminClient() {
 
   function handleEditService(service: AdminServiceItem) {
     setFeedback(null);
+    setEditorTab("service");
     setServiceMode("edit");
     setServiceForm({
       id: service.id,
@@ -516,6 +604,42 @@ export default function ServicesAdminClient() {
         };
       })(),
     });
+  }
+
+  async function handleDepartmentSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFeedback(null);
+
+    const payload = buildDepartmentPayload(departmentForm);
+    if (payload.error) {
+      setFeedback({ type: "error", message: payload.error });
+      return;
+    }
+
+    setDepartmentSubmitting(true);
+
+    try {
+      if (departmentMode === "edit" && departmentForm.id) {
+        await apiPatch<DepartmentSummary>(
+          `/api/v1/admin/departments/${departmentForm.id}`,
+          payload.value,
+          { auth: true }
+        );
+        setFeedback({ type: "success", message: "Secretaria atualizada com sucesso." });
+      } else {
+        await apiPost<DepartmentSummary>("/api/v1/admin/departments", payload.value, {
+          auth: true,
+        });
+        setFeedback({ type: "success", message: "Secretaria criada com sucesso." });
+      }
+
+      resetDepartmentForm();
+      await fetchCatalog();
+    } catch (error) {
+      setFeedback({ type: "error", message: getErrorMessage(error) });
+    } finally {
+      setDepartmentSubmitting(false);
+    }
   }
 
   async function handleCategorySubmit(event: FormEvent<HTMLFormElement>) {
@@ -654,12 +778,21 @@ export default function ServicesAdminClient() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Serviços e categorias</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Catálogo e secretarias</h1>
           <p className="mt-1 text-sm text-gray-500">
-            {categories.length} categorias ativas e {services.length} serviços gerenciados no backoffice
+            {departments.length} secretarias, {categories.length} categorias e {services.length} serviços organizados no backoffice
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            leftIcon={<Building2 size={16} />}
+            onClick={resetDepartmentForm}
+          >
+            Nova secretaria
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -689,7 +822,12 @@ export default function ServicesAdminClient() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-4">
+          <p className="text-sm font-medium text-violet-700">Secretarias</p>
+          <p className="mt-2 text-3xl font-semibold text-gray-900">{departments.length}</p>
+          <p className="mt-1 text-sm text-gray-500">Cadastre as áreas responsáveis antes de vincular categorias.</p>
+        </div>
         <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4">
           <p className="text-sm font-medium text-blue-700">Categorias</p>
           <p className="mt-2 text-3xl font-semibold text-gray-900">{categories.length}</p>
@@ -709,7 +847,13 @@ export default function ServicesAdminClient() {
             type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar por categoria, serviço, slug, prioridade ou secretaria..."
+            placeholder={
+              editorTab === "department"
+                ? "Buscar por secretaria, slug ou telefone..."
+                : editorTab === "category"
+                  ? "Buscar por categoria, secretaria ou slug..."
+                  : "Buscar por serviço, categoria, prioridade ou slug..."
+            }
             className="w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           />
         </div>
@@ -734,8 +878,74 @@ export default function ServicesAdminClient() {
           Carregando catálogo administrativo...
         </div>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.18fr)_minmax(360px,0.82fr)]">
           <div className="space-y-6">
+            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+              <CategorySectionHeader
+                title="Secretarias"
+                description="Gerencie as áreas responsáveis usadas nas categorias e no acompanhamento operacional."
+              />
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                {filteredDepartments.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500 md:col-span-2">
+                    Nenhuma secretaria encontrada com os filtros atuais.
+                  </div>
+                ) : (
+                  filteredDepartments.map((department) => (
+                    <div
+                      key={department.id}
+                      className="rounded-2xl border border-gray-100 p-4 transition-colors hover:border-violet-200 hover:bg-violet-50/30"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
+                              <Building2 size={18} />
+                            </span>
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{department.name}</h3>
+                              <p className="text-xs font-medium text-gray-500">{department.slug}</p>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {department.description || "Sem descrição cadastrada."}
+                          </p>
+                          <div className="flex flex-wrap gap-2 text-xs">
+                            <span className="rounded-full bg-gray-100 px-2.5 py-1 font-medium text-gray-700">
+                              {department.phone || "Sem telefone"}
+                            </span>
+                            <span className="rounded-full bg-violet-100 px-2.5 py-1 font-medium text-violet-700">
+                              {department._count.categories} categoria{department._count.categories === 1 ? "" : "s"}
+                            </span>
+                            <span className="rounded-full bg-gray-100 px-2.5 py-1 font-medium text-gray-700">
+                              {department._count.requests} solicitaç{department._count.requests === 1 ? "ão" : "ões"}
+                            </span>
+                            <span
+                              className={`rounded-full px-2.5 py-1 font-medium ${
+                                department.isActive ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {department.isActive ? "Ativa" : "Inativa"}
+                            </span>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          leftIcon={<Pencil size={15} />}
+                          onClick={() => handleEditDepartment(department)}
+                        >
+                          Editar
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+
             <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <CategorySectionHeader
                 title="Categorias"
@@ -922,6 +1132,129 @@ export default function ServicesAdminClient() {
 
           <div className="space-y-6">
             <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap gap-2 rounded-2xl bg-gray-50 p-2">
+                {[
+                  { key: "department", label: "Secretarias", icon: <Building2 size={15} /> },
+                  { key: "category", label: "Categorias", icon: <Plus size={15} /> },
+                  { key: "service", label: "Serviços", icon: <Wrench size={15} /> },
+                ].map((tab) => {
+                  const isActive = editorTab === tab.key;
+
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setEditorTab(tab.key as "department" | "category" | "service")}
+                      className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                        isActive
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-500 hover:bg-white/70 hover:text-gray-700"
+                      }`}
+                    >
+                      {tab.icon}
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {editorTab === "department" && (
+              <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <CategorySectionHeader
+                  title={departmentMode === "edit" ? "Editar secretaria" : "Nova secretaria"}
+                  description="Cadastre a estrutura responsável e mantenha o vínculo com categorias sempre disponível."
+                />
+
+                <form className="mt-5 space-y-4" onSubmit={handleDepartmentSubmit}>
+                  <Input
+                    label="Nome"
+                    name="department-name"
+                    value={departmentForm.name}
+                    onChange={(event) =>
+                      setDepartmentForm((current) => ({ ...current, name: event.target.value }))
+                    }
+                    placeholder="Ex.: Secretaria Municipal de Saúde"
+                    required
+                  />
+                  <Input
+                    label="Slug"
+                    name="department-slug"
+                    value={departmentForm.slug}
+                    onChange={(event) =>
+                      setDepartmentForm((current) => ({ ...current, slug: event.target.value }))
+                    }
+                    placeholder="semus"
+                    required
+                  />
+                  <Input
+                    label="Telefone"
+                    name="department-phone"
+                    value={departmentForm.phone}
+                    onChange={(event) =>
+                      setDepartmentForm((current) => ({ ...current, phone: event.target.value }))
+                    }
+                    placeholder="(21) 99999-9999"
+                  />
+                  <div>
+                    <label
+                      htmlFor="department-description"
+                      className="mb-1.5 block text-sm font-medium text-neutral-700"
+                    >
+                      Descrição
+                      <span className="ml-1 text-red-500">*</span>
+                    </label>
+                    <textarea
+                      id="department-description"
+                      value={departmentForm.description}
+                      onChange={(event) =>
+                        setDepartmentForm((current) => ({
+                          ...current,
+                          description: event.target.value,
+                        }))
+                      }
+                      placeholder="Responsabilidade e escopo operacional dessa secretaria."
+                      rows={4}
+                      className="w-full rounded-md border border-neutral-300 bg-white px-4 py-2.5 text-sm text-neutral-800 outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      required
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={departmentForm.isActive}
+                      onChange={(event) =>
+                        setDepartmentForm((current) => ({
+                          ...current,
+                          isActive: event.target.checked,
+                        }))
+                      }
+                    />
+                    Manter secretaria ativa
+                  </label>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      isLoading={departmentSubmitting}
+                      leftIcon={<Save size={15} />}
+                    >
+                      {departmentMode === "edit" ? "Salvar secretaria" : "Criar secretaria"}
+                    </Button>
+                    {departmentMode === "edit" && (
+                      <Button type="button" variant="ghost" size="sm" onClick={resetDepartmentForm}>
+                        Cancelar edição
+                      </Button>
+                    )}
+                  </div>
+                </form>
+              </section>
+            )}
+
+            {editorTab === "category" && (
+              <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <CategorySectionHeader
                 title={categoryMode === "edit" ? "Editar categoria" : "Nova categoria"}
                 description="As categorias alimentam o catálogo público e a organização do admin."
@@ -1002,30 +1335,45 @@ export default function ServicesAdminClient() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label
-                      htmlFor="category-department"
-                      className="mb-1.5 block text-sm font-medium text-neutral-700"
-                    >
-                      Secretaria
-                    </label>
-                    <select
-                      id="category-department"
-                      value={categoryForm.departmentId}
-                      onChange={(event) =>
-                        setCategoryForm((current) => ({
-                          ...current,
-                          departmentId: event.target.value,
-                        }))
-                      }
-                      className="w-full rounded-md border border-neutral-300 bg-white px-4 py-2.5 text-neutral-800 outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    >
-                      <option value="">Sem vínculo</option>
-                      {departments.map((department) => (
-                        <option key={department.id} value={department.id}>
-                          {department.name}
-                        </option>
-                      ))}
-                    </select>
+                    {departments.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-800">
+                        <p>Cadastre uma secretaria para vincular esta categoria à área responsável.</p>
+                        <button
+                          type="button"
+                          onClick={resetDepartmentForm}
+                          className="mt-2 text-sm font-medium underline"
+                        >
+                          Criar secretaria agora
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <label
+                          htmlFor="category-department"
+                          className="mb-1.5 block text-sm font-medium text-neutral-700"
+                        >
+                          Secretaria
+                        </label>
+                        <select
+                          id="category-department"
+                          value={categoryForm.departmentId}
+                          onChange={(event) =>
+                            setCategoryForm((current) => ({
+                              ...current,
+                              departmentId: event.target.value,
+                            }))
+                          }
+                          className="w-full rounded-md border border-neutral-300 bg-white px-4 py-2.5 text-neutral-800 outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        >
+                          <option value="">Sem vínculo</option>
+                          {departments.map((department) => (
+                            <option key={department.id} value={department.id}>
+                              {department.name}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    )}
                   </div>
                   <Input
                     label="Ordem"
@@ -1074,14 +1422,28 @@ export default function ServicesAdminClient() {
                 </div>
               </form>
             </section>
+            )}
 
-            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            {editorTab === "service" && (
+              <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <CategorySectionHeader
                 title={serviceMode === "edit" ? "Editar serviço" : "Novo serviço"}
                 description="Preencha as informações do serviço e organize o formulário de atendimento."
               />
 
               <form className="mt-5 space-y-4" onSubmit={handleServiceSubmit}>
+                {categories.length === 0 && (
+                  <div className="rounded-xl border border-dashed border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                    <p>Cadastre uma categoria antes de criar serviços.</p>
+                    <button
+                      type="button"
+                      onClick={resetCategoryForm}
+                      className="mt-2 text-sm font-medium underline"
+                    >
+                      Criar categoria agora
+                    </button>
+                  </div>
+                )}
                 <Input
                   label="Nome"
                   name="service-name"
@@ -1395,6 +1757,7 @@ export default function ServicesAdminClient() {
                 </div>
               </form>
             </section>
+            )}
           </div>
         </div>
       )}
