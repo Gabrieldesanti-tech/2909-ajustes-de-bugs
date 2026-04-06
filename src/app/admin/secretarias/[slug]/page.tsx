@@ -14,7 +14,6 @@ import {
   Eye,
   Clock,
   AlertTriangle,
-  Filter,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -196,12 +195,16 @@ export default function SecretariaDetailPage() {
             <FolderOpen size={16} className="text-gray-400" />Categorias de serviço vinculadas
           </h2>
           <div className="flex flex-wrap gap-2">
-            {secretaria.categories?.map(cat => (
-              <span key={cat.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 text-gray-700 rounded-lg text-xs font-medium">
-                {cat.name}
-                <span className="text-gray-400">({cat.services.length})</span>
-              </span>
-            ))}
+            {secretaria.categories?.map((cat) => {
+              const servicesCount = cat.services?.length ?? 0;
+
+              return (
+                <span key={cat.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 text-gray-700 rounded-lg text-xs font-medium">
+                  {cat.name}
+                  <span className="text-gray-400">({servicesCount})</span>
+                </span>
+              );
+            })}
           </div>
         </div>
       )}

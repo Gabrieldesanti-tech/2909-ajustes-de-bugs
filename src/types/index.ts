@@ -439,7 +439,7 @@ export interface DepartmentDetail extends DepartmentSummary {
     id: string;
     name: string;
     slug: string;
-    services: CatalogServiceSummary[];
+    services?: CatalogServiceSummary[];
   }>;
   stats: {
     total: number;
