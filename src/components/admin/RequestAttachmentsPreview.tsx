@@ -87,7 +87,7 @@ export function RequestAttachmentsPreview({
 
   const safeAttachments = useMemo(() => attachments ?? [], [attachments]);
   const attachmentAccessRef = useRef<Record<string, AttachmentAccessState>>({});
-  const inflightRequestsRef = useRef<Record<string, Promise<string | null>>>({});
+  const inflightRequestsRef = useRef<Record<string, Promise<string | null> | undefined>>({});
 
   useEffect(() => {
     attachmentAccessRef.current = attachmentAccess;
