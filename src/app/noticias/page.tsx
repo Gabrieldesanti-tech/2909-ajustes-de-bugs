@@ -187,11 +187,13 @@ export default function NoticiasPage() {
         throw new Error(json.message || json.error || "Nao foi possivel carregar as noticias.");
       }
 
+      const pageData = json.data;
+
       setNews((current) =>
-        pageToLoad === 1 ? json.data!.data : mergeNewsPages(current, json.data!.data)
+        pageToLoad === 1 ? pageData.data : mergeNewsPages(current, pageData.data)
       );
-      setPage(json.data.page);
-      setTotalPages(json.data.totalPages);
+      setPage(pageData.page);
+      setTotalPages(pageData.totalPages);
     } catch (fetchError) {
       console.error("Erro ao carregar noticias:", fetchError);
       setError(
