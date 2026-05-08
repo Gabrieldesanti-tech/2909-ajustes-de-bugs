@@ -48,7 +48,7 @@ function buildImageBlock(
   };
 }
 
-function parseParagraph(element: HTMLElement): NewsContentBlock | null {
+function parseParagraph(element: Element): NewsContentBlock | null {
   const text = normalizeText(element.textContent);
 
   if (!text) {

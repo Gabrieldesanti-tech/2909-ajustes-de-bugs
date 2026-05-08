@@ -1,87 +1,207 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Newspaper, Calendar, ArrowRight, RefreshCw, Search } from "lucide-react";
-import { parseNewsContent, type NewsContentBlock } from "@/lib/news-content";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Newspaper, Calendar, ArrowRight, RefreshCw, Search, ImageIcon } from "lucide-react";
+import { parseNewsContent, type ParsedNewsContent } from "@/lib/news-content";
 import type { ApiEnvelope, ApiPaginatedData, NewsItem } from "@/types";
 
-const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
-  "Educação": { bg: "bg-blue-100", text: "text-blue-700" },
-  "Saúde": { bg: "bg-green-100", text: "text-green-700" },
-  "Infraestrutura": { bg: "bg-orange-100", text: "text-orange-700" },
-  "Obras": { bg: "bg-amber-100", text: "text-amber-700" },
-  "Segurança": { bg: "bg-red-100", text: "text-red-700" },
-  "Desenvolvimento Social": { bg: "bg-purple-100", text: "text-purple-700" },
-  "Governo": { bg: "bg-indigo-100", text: "text-indigo-700" },
-  "Tributos": { bg: "bg-yellow-100", text: "text-yellow-700" },
-  "Urbanismo": { bg: "bg-cyan-100", text: "text-cyan-700" },
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; accent: string }> = {
+  "Educação": { bg: "bg-blue-100", text: "text-blue-700", accent: "#3b82f6" },
+  "Saúde": { bg: "bg-green-100", text: "text-green-700", accent: "#22c55e" },
+  "Infraestrutura": { bg: "bg-orange-100", text: "text-orange-700", accent: "#f97316" },
+  "Obras": { bg: "bg-amber-100", text: "text-amber-700", accent: "#f59e0b" },
+  "Segurança": { bg: "bg-red-100", text: "text-red-700", accent: "#ef4444" },
+  "Desenvolvimento Social": { bg: "bg-purple-100", text: "text-purple-700", accent: "#8b5cf6" },
+  "Governo": { bg: "bg-indigo-100", text: "text-indigo-700", accent: "#6366f1" },
+  "Tributos": { bg: "bg-yellow-100", text: "text-yellow-700", accent: "#eab308" },
+  "Urbanismo": { bg: "bg-cyan-100", text: "text-cyan-700", accent: "#06b6d4" },
 };
+
+const PAGE_SIZE = 9;
+
+function formatDate(date: string): string {
+  return new Date(date).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function mergeNewsPages(current: NewsItem[], incoming: NewsItem[]): NewsItem[] {
+  const seen = new Set(current.map((item) => item.id));
+  const merged = [...current];
+
+  incoming.forEach((item) => {
+    if (!seen.has(item.id)) {
+      merged.push(item);
+      seen.add(item.id);
+    }
+  });
+
+  return merged;
+}
+
+function NewsLoadingSkeleton() {
+  return (
+    <div className="space-y-6" aria-hidden>
+      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <div className="h-72 animate-pulse bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100" />
+        <div className="space-y-4 p-8">
+          <div className="h-4 w-32 animate-pulse rounded-full bg-gray-100" />
+          <div className="h-8 w-3/4 animate-pulse rounded-xl bg-gray-100" />
+          <div className="space-y-2">
+            <div className="h-4 w-full animate-pulse rounded-lg bg-gray-100" />
+            <div className="h-4 w-5/6 animate-pulse rounded-lg bg-gray-100" />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div
+            key={index}
+            className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+          >
+            <div className="h-48 animate-pulse bg-gray-100" />
+            <div className="space-y-3 p-6">
+              <div className="h-3 w-24 animate-pulse rounded-full bg-gray-100" />
+              <div className="h-5 w-full animate-pulse rounded-lg bg-gray-100" />
+              <div className="h-5 w-4/5 animate-pulse rounded-lg bg-gray-100" />
+              <div className="space-y-2 pt-2">
+                <div className="h-3 w-full animate-pulse rounded-lg bg-gray-100" />
+                <div className="h-3 w-5/6 animate-pulse rounded-lg bg-gray-100" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NewsPreviewContent({ parsed }: { parsed: ParsedNewsContent }) {
+  return (
+    <div className="space-y-4">
+      {parsed.blocks.map((block, index) => {
+        if (block.type === "image") {
+          return (
+            <figure
+              key={`${block.src}-${index}`}
+              className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50"
+            >
+              <img src={block.src} alt={block.alt} className="h-auto w-full object-cover" />
+              {block.caption && (
+                <figcaption className="border-t border-gray-100 px-4 py-3 text-xs leading-relaxed text-gray-500">
+                  {block.caption}
+                </figcaption>
+              )}
+            </figure>
+          );
+        }
+
+        if (block.type === "subheading") {
+          return (
+            <h3 key={`${block.text}-${index}`} className="text-base font-semibold text-gray-900">
+              {block.text}
+            </h3>
+          );
+        }
+
+        return (
+          <p
+            key={`${block.text}-${index}`}
+            className={`text-sm leading-7 text-gray-700 ${block.emphasis ? "font-medium text-gray-800" : ""}`}
+          >
+            {block.text}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function NoticiasPage() {
   const [news, setNews] = useState<NewsItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [requestError, setRequestError] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const isFetchingNextPageRef = useRef(false);
+  const isFetchingRef = useRef(false);
+
+  const hasMore = page < totalPages;
+
+  const parsedNews = useMemo(() => {
+    const entries = new Map<string, ParsedNewsContent>();
+
+    news.forEach((item) => {
+      entries.set(item.id, parseNewsContent(item.content));
+    });
+
+    return entries;
+  }, [news]);
 
   const fetchNewsPage = useCallback(async (pageToLoad: number) => {
-    const isFirstPage = pageToLoad === 1;
-
-    if (!isFirstPage && isFetchingNextPageRef.current) {
+    if (isFetchingRef.current) {
       return;
     }
 
+    isFetchingRef.current = true;
+    const isFirstPage = pageToLoad === 1;
+
     if (isFirstPage) {
-      setLoading(true);
+      setInitialLoading(true);
     } else {
-      isFetchingNextPageRef.current = true;
       setLoadingMore(true);
     }
 
-    setRequestError("");
+    setError(null);
 
     try {
       const params = new URLSearchParams({
-        page: pageToLoad.toString(),
-        limit: "9",
+        page: String(pageToLoad),
+        limit: String(PAGE_SIZE),
       });
-      const res = await fetch(`/api/v1/public/news?${params.toString()}`, { cache: "no-store" });
-      const json = (await res.json()) as ApiEnvelope<ApiPaginatedData<NewsItem>>;
-      const pageData = json.data;
-      const items = Array.isArray(pageData?.data) ? pageData.data : [];
 
-      if (!json.success) {
-        throw new Error(json.error || "Não foi possível carregar as notícias.");
+      const response = await fetch(`/api/v1/public/news?${params.toString()}`, {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error("Nao foi possivel carregar as noticias.");
       }
 
-      setNews((currentNews) => {
-        const mergedNews = isFirstPage ? items : [...currentNews, ...items];
-        return mergedNews.filter(
-          (item, index, collection) => collection.findIndex((candidate) => candidate.id === item.id) === index
-        );
-      });
+      const json = (await response.json()) as ApiEnvelope<ApiPaginatedData<NewsItem>>;
 
-      const resolvedPage = pageData?.page ?? pageToLoad;
-      const resolvedTotalPages = pageData?.totalPages ?? resolvedPage;
+      if (!json.success || !json.data) {
+        throw new Error(json.message || json.error || "Nao foi possivel carregar as noticias.");
+      }
 
-      setCurrentPage(resolvedPage);
-      setHasMore(resolvedPage < resolvedTotalPages);
-    } catch (error) {
-      console.error("Erro ao carregar notícias:", error);
-      setRequestError("Não foi possível atualizar o feed agora.");
+      setNews((current) =>
+        pageToLoad === 1 ? json.data!.data : mergeNewsPages(current, json.data!.data)
+      );
+      setPage(json.data.page);
+      setTotalPages(json.data.totalPages);
+    } catch (fetchError) {
+      console.error("Erro ao carregar noticias:", fetchError);
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Nao foi possivel carregar as noticias."
+      );
     } finally {
       if (isFirstPage) {
-        setLoading(false);
+        setInitialLoading(false);
       } else {
-        isFetchingNextPageRef.current = false;
         setLoadingMore(false);
       }
+
+      isFetchingRef.current = false;
     }
   }, []);
 
@@ -91,301 +211,324 @@ export default function NoticiasPage() {
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !hasMore || loading || loadingMore) {
-      return undefined;
+
+    if (!sentinel || !hasMore) {
+      return;
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry?.isIntersecting) {
-          void fetchNewsPage(currentPage + 1);
+
+        if (entry?.isIntersecting && !isFetchingRef.current && !loadingMore && !initialLoading && !error) {
+          void fetchNewsPage(page + 1);
         }
       },
-      { rootMargin: "600px 0px" }
+      {
+        rootMargin: "240px 0px",
+      }
     );
 
     observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [currentPage, fetchNewsPage, hasMore, loading, loadingMore]);
 
-  const normalizedNews = useMemo(
+    return () => observer.disconnect();
+  }, [error, fetchNewsPage, hasMore, initialLoading, loadingMore, page]);
+
+  const categories = useMemo(
     () =>
-      news.map((item) => ({
-        item,
-        parsed: parseNewsContent(item),
-      })),
+      [...new Set(news.map((item) => item.category).filter(Boolean))].sort((left, right) =>
+        left.localeCompare(right, "pt-BR")
+      ),
     [news]
   );
 
-  const categories = useMemo(
-    () => [...new Set(normalizedNews.map(({ item }) => item.category).filter(Boolean))],
-    [normalizedNews]
-  );
+  const filteredNews = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
 
-  const filtered = useMemo(
-    () =>
-      normalizedNews.filter(({ item, parsed }) => {
-        if (categoryFilter && item.category !== categoryFilter) {
-          return false;
-        }
+    return news.filter((item) => {
+      if (categoryFilter && item.category !== categoryFilter) {
+        return false;
+      }
 
-        if (!search) {
-          return true;
-        }
+      if (!normalizedSearch) {
+        return true;
+      }
 
-        const searchTerm = search.toLowerCase();
-        return [item.title.toLowerCase(), parsed.excerptText.toLowerCase(), parsed.searchText].some((candidate) =>
-          candidate.includes(searchTerm)
-        );
-      }),
-    [categoryFilter, normalizedNews, search]
-  );
+      const haystacks = [item.title, item.excerpt].map((value) => value.toLowerCase());
+      return haystacks.some((value) => value.includes(normalizedSearch));
+    });
+  }, [categoryFilter, news, search]);
 
-  const formatDate = (d: string) => {
-    return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
-  };
-
-  const featuredNews = !search && !categoryFilter ? filtered[0] : null;
-  const remainingNews = featuredNews ? filtered.slice(1) : filtered;
-  const showEmptyState = filtered.length === 0 && !hasMore;
-  const showPendingFilterState = filtered.length === 0 && hasMore && news.length > 0;
+  const featuredNews = filteredNews[0];
+  const gridNews = search || categoryFilter ? filteredNews : filteredNews.slice(1);
+  const canRetryMore = news.length > 0 && error;
+  const showEmptyState = !initialLoading && filteredNews.length === 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero */}
-      <div style={{ backgroundColor: "#1748ae" }} className="text-white py-12 md:py-16">
+      <div style={{ backgroundColor: "#1748ae" }} className="py-12 text-white md:py-16">
         <div className="container-main">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-white/10 rounded-xl"><Newspaper size={32} /></div>
+          <div className="mb-4 flex items-center gap-3">
+            <div className="rounded-xl bg-white/10 p-3">
+              <Newspaper size={32} />
+            </div>
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold">Notícias</h1>
-              <p className="text-blue-200 text-sm mt-1">Prefeitura Municipal de Belford Roxo</p>
+              <h1 className="text-3xl font-bold md:text-4xl">Notícias</h1>
+              <p className="mt-1 text-sm text-blue-200">Prefeitura Municipal de Belford Roxo</p>
             </div>
           </div>
-          <p className="text-blue-100 text-lg max-w-2xl mt-4">
+          <p className="mt-4 max-w-2xl text-lg text-blue-100">
             Fique por dentro das últimas novidades, obras, programas e ações da prefeitura.
           </p>
         </div>
       </div>
 
-      <div className="container-main py-10 space-y-6">
-        {/* Filtros */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="flex-1 relative">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Buscar notícias..."
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
+      <div className="container-main space-y-6 py-10">
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row">
+            <div className="relative flex-1">
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar noticias carregadas no feed..."
+                className="w-full rounded-lg border border-gray-200 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <button onClick={() => setCategoryFilter("")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${!categoryFilter ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setCategoryFilter("")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  !categoryFilter
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
                 Todas
               </button>
-              {categories.map(cat => (
-                <button key={cat} onClick={() => setCategoryFilter(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${categoryFilter === cat ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-                  {cat}
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setCategoryFilter(category)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    categoryFilter === category
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {category}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        {loading ? (
-          <div className="bg-white rounded-2xl p-12 text-center text-gray-500">
-            <RefreshCw size={28} className="animate-spin mx-auto mb-3" />Carregando notícias...
-          </div>
-        ) : requestError && news.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center text-gray-400">
-            <Newspaper size={48} className="mx-auto mb-4 opacity-40" />
-            <p className="font-medium text-gray-600">{requestError}</p>
+        {initialLoading ? (
+          <NewsLoadingSkeleton />
+        ) : error && news.length === 0 ? (
+          <div className="rounded-2xl border border-red-100 bg-white p-8 text-center shadow-sm">
+            <p className="text-base font-semibold text-gray-800">Nao foi possivel carregar as noticias</p>
+            <p className="mt-2 text-sm text-gray-500">{error}</p>
+            <button
+              onClick={() => void fetchNewsPage(1)}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            >
+              <RefreshCw size={16} />
+              Tentar novamente
+            </button>
           </div>
         ) : showEmptyState ? (
-          <div className="bg-white rounded-2xl p-12 text-center text-gray-400">
+          <div className="rounded-2xl bg-white p-12 text-center text-gray-400 shadow-sm">
             <Newspaper size={48} className="mx-auto mb-4 opacity-40" />
-            <p className="font-medium text-gray-500">Nenhuma notícia encontrada</p>
+            <p className="font-medium text-gray-500">Nenhuma noticia encontrada</p>
           </div>
         ) : (
           <>
-            {showPendingFilterState && (
-              <div className="bg-white rounded-2xl p-12 text-center text-gray-400 border border-gray-100 shadow-sm">
-                <RefreshCw size={24} className="animate-spin mx-auto mb-3 text-gray-400" />
-                <p className="font-medium text-gray-500">Buscando mais notícias para esse filtro...</p>
-              </div>
-            )}
+            {featuredNews && !search && !categoryFilter && (
+              <div className="overflow-hidden rounded-[28px] border border-gray-100 bg-white shadow-sm">
+                <div className="grid gap-0 lg:grid-cols-[1.2fr_1fr]">
+                  <div className="relative min-h-[280px] bg-slate-100">
+                    {(() => {
+                      const preview = featuredNews.image || parsedNews.get(featuredNews.id)?.previewImage?.src;
 
-            {/* Destaque - primeira notícia */}
-            {featuredNews && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                {featuredNews.parsed.coverImage && (
-                  <div className="aspect-[16/7] bg-slate-200 overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={featuredNews.parsed.coverImage}
-                      alt={featuredNews.item.title}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                )}
-                <div className="p-8">
-                  <div className="flex items-center gap-3 mb-3">
-                    {(() => { const c = CATEGORY_COLORS[featuredNews.item.category] || { bg: "bg-gray-100", text: "text-gray-700" };
-                      return <span className={`${c.bg} ${c.text} px-2.5 py-1 rounded text-xs font-medium`}>{featuredNews.item.category}</span>;
+                      if (!preview) {
+                        return (
+                          <div className="flex h-full min-h-[280px] items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-slate-400">
+                            <div className="text-center">
+                              <ImageIcon size={36} className="mx-auto mb-3" />
+                              <p className="text-sm font-medium">Imagem em destaque indisponivel</p>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <img
+                          src={preview}
+                          alt={featuredNews.title}
+                          className="h-full min-h-[280px] w-full object-cover"
+                        />
+                      );
                     })()}
-                    <span className="text-xs text-gray-400 flex items-center gap-1"><Calendar size={12} />{formatDate(featuredNews.item.publishedAt)}</span>
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-3">{featuredNews.item.title}</h2>
-                  <p className="text-gray-600 leading-relaxed mb-4">
-                    {featuredNews.parsed.excerptText || "Toque em ler mais para abrir o conteúdo."}
-                  </p>
-                  <button onClick={() => setExpandedId(expandedId === featuredNews.item.id ? null : featuredNews.item.id)}
-                    className="inline-flex items-center gap-2 text-blue-600 font-medium text-sm hover:text-blue-800 transition-colors">
-                    {expandedId === featuredNews.item.id ? "Fechar" : "Ler mais"} <ArrowRight size={16} />
-                  </button>
-                  {expandedId === featuredNews.item.id && (
-                    <div className="mt-6 pt-5 border-t border-gray-100">
-                      <NewsBlocks blocks={featuredNews.parsed.blocks.slice(0, 8)} />
-                      {featuredNews.parsed.hasOverflow && (
-                        <p className="mt-4 text-sm text-gray-500">
-                          O feed mostra uma versão resumida desta notícia para leitura rápida.
-                        </p>
-                      )}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 to-transparent p-6 text-white lg:hidden">
+                      <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
+                        {featuredNews.category}
+                      </span>
                     </div>
-                  )}
+                  </div>
+
+                  <div className="p-8">
+                    <div className="mb-4 flex flex-wrap items-center gap-3">
+                      {(() => {
+                        const color = CATEGORY_COLORS[featuredNews.category] || {
+                          bg: "bg-gray-100",
+                          text: "text-gray-700",
+                          accent: "#6b7280",
+                        };
+
+                        return (
+                          <span className={`${color.bg} ${color.text} rounded-full px-3 py-1 text-xs font-medium`}>
+                            {featuredNews.category}
+                          </span>
+                        );
+                      })()}
+                      <span className="flex items-center gap-1 text-xs text-gray-400">
+                        <Calendar size={12} />
+                        {formatDate(featuredNews.publishedAt)}
+                      </span>
+                    </div>
+
+                    <h2 className="mb-3 text-2xl font-bold text-gray-900">{featuredNews.title}</h2>
+                    <p className="mb-5 text-sm leading-7 text-gray-600">{featuredNews.excerpt}</p>
+
+                    <button
+                      onClick={() =>
+                        setExpandedId(expandedId === featuredNews.id ? null : featuredNews.id)
+                      }
+                      className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 transition-colors hover:text-blue-800"
+                    >
+                      {expandedId === featuredNews.id ? "Fechar leitura" : "Ler mais"}
+                      <ArrowRight size={16} />
+                    </button>
+
+                    {expandedId === featuredNews.id && (
+                      <div className="mt-6 border-t border-gray-100 pt-6">
+                        <NewsPreviewContent
+                          parsed={parsedNews.get(featuredNews.id) || { blocks: [] }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Lista de notícias */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {remainingNews.map(({ item, parsed }) => {
-                const catColor = CATEGORY_COLORS[item.category] || { bg: "bg-gray-100", text: "text-gray-700" };
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {gridNews.map((item) => {
+                const color = CATEGORY_COLORS[item.category] || {
+                  bg: "bg-gray-100",
+                  text: "text-gray-700",
+                  accent: "#6b7280",
+                };
+                const parsed = parsedNews.get(item.id) || { blocks: [] };
+                const preview = item.image || parsed.previewImage?.src;
+
                 return (
-                  <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
-                    {parsed.coverImage ? (
-                      <div className="aspect-[16/9] bg-slate-100 overflow-hidden">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <article
+                    key={item.id}
+                    className="overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-md"
+                  >
+                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+                      {preview ? (
                         <img
-                          src={parsed.coverImage}
+                          src={preview}
                           alt={item.title}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.02]"
                         />
-                      </div>
-                    ) : (
-                      <div className="h-2" style={{ backgroundColor: catColor.text === "text-blue-700" ? "#3b82f6" : catColor.text === "text-green-700" ? "#22c55e" : catColor.text === "text-orange-700" ? "#f97316" : catColor.text === "text-red-700" ? "#ef4444" : catColor.text === "text-purple-700" ? "#8b5cf6" : "#6b7280" }} />
-                    )}
-                    <div className="p-6 flex-1 flex flex-col">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className={`${catColor.bg} ${catColor.text} px-2 py-0.5 rounded text-xs font-medium`}>{item.category}</span>
+                      ) : (
+                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-slate-400">
+                          <div className="text-center">
+                            <ImageIcon size={28} className="mx-auto mb-2" />
+                            <p className="text-xs font-medium">Sem imagem disponivel</p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: color.accent }} />
+                    </div>
+
+                    <div className="flex h-full flex-col p-6">
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <span className={`${color.bg} ${color.text} rounded-full px-2.5 py-1 text-[11px] font-medium`}>
+                          {item.category}
+                        </span>
                         <span className="text-xs text-gray-400">{formatDate(item.publishedAt)}</span>
                       </div>
-                      <h3 className="font-bold text-gray-800 mb-2 text-sm leading-snug">{item.title}</h3>
-                      <p className="text-xs text-gray-500 leading-relaxed flex-1">
-                        {parsed.excerptText || "Abra a notícia para ver os principais trechos."}
-                      </p>
-                      <button onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                        className="mt-4 inline-flex items-center gap-1 text-blue-600 text-xs font-medium hover:text-blue-800 transition-colors">
-                        {expandedId === item.id ? "Fechar" : "Ler mais"} <ArrowRight size={14} />
+
+                      <h3 className="mb-2 text-base font-bold leading-snug text-gray-900">{item.title}</h3>
+                      <p className="flex-1 text-sm leading-6 text-gray-500">{item.excerpt}</p>
+
+                      <button
+                        onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                        className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-blue-600 transition-colors hover:text-blue-800"
+                      >
+                        {expandedId === item.id ? "Fechar leitura" : "Ler mais"}
+                        <ArrowRight size={14} />
                       </button>
+
                       {expandedId === item.id && (
-                        <div className="mt-4 pt-4 border-t border-gray-100">
-                          <NewsBlocks blocks={parsed.blocks.slice(0, 6)} compact />
-                          {parsed.hasOverflow && (
-                            <p className="mt-3 text-[11px] text-gray-500">
-                              Exibindo os principais trechos desta notícia no feed.
-                            </p>
-                          )}
+                        <div className="mt-4 border-t border-gray-100 pt-4">
+                          <NewsPreviewContent parsed={parsed} />
                         </div>
                       )}
                     </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
 
-            {requestError && news.length > 0 && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                {requestError}
-              </div>
-            )}
-
-            {hasMore && (
-              <div ref={sentinelRef} className="h-16 flex items-center justify-center">
-                {loadingMore ? (
-                  <div className="inline-flex items-center gap-2 text-sm text-gray-500">
-                    <RefreshCw size={16} className="animate-spin" />
-                    Carregando mais notícias...
+            <div className="space-y-4">
+              {canRetryMore && (
+                <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <span>{error}</span>
+                    <button
+                      onClick={() => void fetchNewsPage(page + 1)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-100"
+                    >
+                      <RefreshCw size={14} />
+                      Tentar carregar mais
+                    </button>
                   </div>
-                ) : (
-                  <span className="text-xs text-gray-400">Role para carregar mais</span>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+
+              {loadingMore && (
+                <div className="flex items-center justify-center gap-3 py-4 text-sm text-gray-500">
+                  <RefreshCw size={18} className="animate-spin" />
+                  Carregando mais noticias...
+                </div>
+              )}
+
+              {!loadingMore && !error && !hasMore && news.length > 0 && (
+                <div className="py-3 text-center text-xs font-medium uppercase tracking-[0.18em] text-gray-400">
+                  Voce chegou ao fim do feed
+                </div>
+              )}
+
+              <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
+            </div>
           </>
         )}
 
-        {/* Fonte */}
-        <div className="text-center text-xs text-gray-400 pt-4">
+        <div className="pt-4 text-center text-xs text-gray-400">
           Fonte: Prefeitura Municipal de Belford Roxo · Secretaria de Comunicação Social (SECOM)
         </div>
       </div>
-    </div>
-  );
-}
-
-function NewsBlocks({
-  blocks,
-  compact = false,
-}: {
-  blocks: NewsContentBlock[];
-  compact?: boolean;
-}) {
-  return (
-    <div className={compact ? "space-y-3" : "space-y-5"}>
-      {blocks.map((block) => {
-        if (block.type === "image") {
-          return (
-            <figure key={block.id} className="space-y-2">
-              <div className={`overflow-hidden rounded-2xl bg-slate-100 ${compact ? "max-h-48" : "max-h-[28rem]"}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={block.src}
-                  alt={block.alt}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              {block.caption && (
-                <figcaption className={`${compact ? "text-[11px]" : "text-sm"} text-gray-500 leading-relaxed`}>
-                  {block.caption}
-                </figcaption>
-              )}
-            </figure>
-          );
-        }
-
-        if (block.type === "heading") {
-          return (
-            <h3
-              key={block.id}
-              className={`${compact ? "text-sm" : "text-lg"} font-semibold text-gray-900 leading-snug`}
-            >
-              {block.text}
-            </h3>
-          );
-        }
-
-        return (
-          <p
-            key={block.id}
-            className={`${compact ? "text-xs" : "text-sm"} text-gray-700 leading-relaxed`}
-          >
-            {block.text}
-          </p>
-        );
-      })}
     </div>
   );
 }
