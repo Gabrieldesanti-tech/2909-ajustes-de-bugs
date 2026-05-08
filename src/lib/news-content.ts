@@ -71,6 +71,19 @@ function parseParagraph(element: Element): NewsContentBlock | null {
   };
 }
 
+function parseTextNode(textContent: string | null | undefined): NewsContentBlock | null {
+  const text = normalizeText(textContent);
+
+  if (!text) {
+    return null;
+  }
+
+  return {
+    type: "paragraph",
+    text,
+  };
+}
+
 export function parseNewsContent(
   html: string,
   options: ParseNewsContentOptions = {}
@@ -103,18 +116,27 @@ export function parseNewsContent(
     blocks.push(block);
   };
 
-  const elements = Array.from(doc.body.children);
+  const nodes = Array.from(doc.body.childNodes);
 
-  for (const element of elements) {
-    const tagName = element.tagName.toUpperCase();
+  for (const node of nodes) {
+    if (node.nodeType === window.Node.TEXT_NODE) {
+      pushBlock(parseTextNode(node.textContent));
+      continue;
+    }
+
+    if (!(node instanceof Element)) {
+      continue;
+    }
+
+    const tagName = node.tagName.toUpperCase();
 
     if (["SCRIPT", "STYLE", "IFRAME", "NOSCRIPT"].includes(tagName)) {
       continue;
     }
 
     if (tagName === "FIGURE") {
-      const image = element.querySelector("img");
-      const caption = element.querySelector("figcaption");
+      const image = node.querySelector("img");
+      const caption = node.querySelector("figcaption");
       const imageBlock = buildImageBlock(
         image?.getAttribute("src"),
         image?.getAttribute("alt"),
@@ -134,10 +156,7 @@ export function parseNewsContent(
     }
 
     if (tagName === "IMG") {
-      const imageBlock = buildImageBlock(
-        element.getAttribute("src"),
-        element.getAttribute("alt")
-      );
+      const imageBlock = buildImageBlock(node.getAttribute("src"), node.getAttribute("alt"));
 
       if (imageBlock && !previewImage) {
         previewImage = {
@@ -152,12 +171,12 @@ export function parseNewsContent(
     }
 
     if (tagName === "P") {
-      pushBlock(parseParagraph(element));
+      pushBlock(parseParagraph(node));
       continue;
     }
 
     if (["H2", "H3", "H4"].includes(tagName)) {
-      const text = normalizeText(element.textContent);
+      const text = normalizeText(node.textContent);
       if (text) {
         pushBlock({ type: "subheading", text });
       }

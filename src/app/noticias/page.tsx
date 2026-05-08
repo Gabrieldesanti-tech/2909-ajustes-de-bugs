@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Newspaper, Calendar, ArrowRight, RefreshCw, Search, ImageIcon } from "lucide-react";
@@ -80,6 +81,10 @@ function NewsLoadingSkeleton() {
 }
 
 function NewsPreviewContent({ parsed }: { parsed: ParsedNewsContent }) {
+  if (parsed.blocks.length === 0) {
+    return <p className="text-sm leading-7 text-gray-600">Conteudo indisponivel para visualizacao.</p>;
+  }
+
   return (
     <div className="space-y-4">
       {parsed.blocks.map((block, index) => {
@@ -254,10 +259,21 @@ export default function NoticiasPage() {
         return true;
       }
 
-      const haystacks = [item.title, item.excerpt].map((value) => value.toLowerCase());
+      const parsedText = (parsedNews.get(item.id)?.blocks || [])
+        .map((block) => {
+          if (block.type === "image") {
+            return [block.alt, block.caption].filter(Boolean).join(" ");
+          }
+
+          return block.text;
+        })
+        .join(" ")
+        .toLowerCase();
+
+      const haystacks = [item.title, item.excerpt, parsedText].map((value) => value.toLowerCase());
       return haystacks.some((value) => value.includes(normalizedSearch));
     });
-  }, [categoryFilter, news, search]);
+  }, [categoryFilter, news, parsedNews, search]);
 
   const featuredNews = filteredNews[0];
   const gridNews = search || categoryFilter ? filteredNews : filteredNews.slice(1);
